@@ -1,8 +1,9 @@
 import {prompt,rewrite,parseSolution,needsRewrite,speechText} from './core.js';
 const base='https://openrouter.ai/api/v1/';
 export async function remote(path,key,body,signal){
- const response=await fetch(base+path,{method:body?'POST':'GET',headers:{...(key?{Authorization:`Bearer ${key}`}:{ }),'X-Title':'SchoolHelp',...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal});
- if(!response.ok){let data;try{data=await response.json()}catch{}throw Error(response.status===402?'OpenRouter credits are required.':data?.error?.message||`OpenRouter request failed (${response.status}).`)}return response;
+ const timeout=AbortSignal.timeout(240000);
+ const response=await fetch(base+path,{method:body?'POST':'GET',headers:{...(key?{Authorization:`Bearer ${key}`}:{ }),'X-Title':'SchoolHelp',...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:signal?AbortSignal.any([signal,timeout]):timeout});
+ if(!response.ok){let data;try{data=await response.json()}catch{}const detail=String(data?.error?.message||`OpenRouter request failed (${response.status}).`).replace(/sk-[a-zA-Z0-9_-]+/g,'[redacted]').slice(0,300);throw Error(response.status===402?'OpenRouter credits are required.':detail)}return response;
 }
 export async function catalog(){const data=await(await remote('models')).json();return data.data||[]}
 export async function speechCatalog(){const data=await(await remote('models?output_modalities=speech')).json();return data.data||[]}
@@ -22,7 +23,7 @@ export async function speechRemote(text,s,key,signal){
  const pcm=s.speechModel.startsWith('google/');
  const response=await remote('audio/speech',key,{model:s.speechModel,input:text,voice:s.speechVoice,response_format:pcm?'pcm':'mp3'},signal);
  const blob=await response.blob();if(!blob.size||!blob.type.startsWith('audio/'))throw Error('OpenRouter returned no supported speech audio.');
- if(pcm){const rate=Number(blob.type.match(/rate=(\d+)/)?.[1]||24000);return pcmWave(new Int16Array(await blob.arrayBuffer()),rate)}return blob;
+ if(/audio\/(?:pcm|l16)/i.test(blob.type)){const rate=Number(blob.type.match(/rate=(\d+)/)?.[1]||24000);if(rate<8000||rate>192000||blob.size%2)throw Error('OpenRouter returned incomplete PCM audio. Retry speech.');return pcmWave(new Int16Array(await blob.arrayBuffer()),rate)}return blob;
 }
 export function pcmWave(samples,rate){const bytes=new ArrayBuffer(44+samples.length*2),view=new DataView(bytes);let o=0;const text=s=>{for(const c of s)view.setUint8(o++,c.charCodeAt(0))};const word=(v,n)=>{n===4?view.setUint32(o,v,true):view.setUint16(o,v,true);o+=n};text('RIFF');word(bytes.byteLength-8,4);text('WAVEfmt ');word(16,4);word(1,2);word(1,2);word(rate,4);word(rate*2,4);word(2,2);word(16,2);text('data');word(samples.length*2,4);for(const n of samples)word(n,2);return new Blob([bytes],{type:'audio/wav'})}
 let encoder;
