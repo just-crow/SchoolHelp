@@ -1,6 +1,10 @@
 .gradle/
 .kotlin/
 .tools/
+**/node_modules/
+web/dist/
+web/public/ffmpeg/
+web/public/piper/
 supabase/.temp/
 .idea/
 local.properties

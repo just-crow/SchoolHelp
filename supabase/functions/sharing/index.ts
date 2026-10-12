@@ -2,7 +2,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 
 const url = Deno.env.get("SUPABASE_URL")!;
 const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+const reply = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const uuid = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const check = (error: unknown) => { if(error) throw new Error((error as {message?:string}).message ?? "Server request failed"); };
 function code() { const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; return Array.from(crypto.getRandomValues(new Uint8Array(10)), n=>alphabet[n%32]).join(""); }
@@ -42,6 +43,7 @@ async function notify(owner: string) {
   }));
 }
 Deno.serve(async req=>{
+  if(req.method==="OPTIONS") return new Response(null,{status:204,headers:cors});
   try {
     if(req.method!=="POST") return reply({error:"POST required"},405);
     const text=await req.text(); if(text.length>250000) return reply({error:"Request too large"},413);

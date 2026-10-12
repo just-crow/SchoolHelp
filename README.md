@@ -10,6 +10,7 @@ SchoolHelp photographs school questions, prepares concise spoken answers, and sh
 
 - `android/`: Android source, Gradle build, scripts, and debug APKs.
 - `ios/`: SwiftUI source and an XcodeGen project specification.
+- `web/`: installable browser version with photo solving, speech, and shared queues.
 - `supabase/`: shared database migrations and the authenticated sharing Edge Function.
 - `shared/fixtures/`: platform-neutral answer and queue examples.
 - `docs/`: setup and verification notes.
@@ -24,6 +25,8 @@ powershell -ExecutionPolicy Bypass -File .\android\scripts\Start-Emulator.ps1
 The Android scripts use the ignored SDK and JDK under root `.tools/`. The configured debug APK is at `android/SchoolHelp-firebase-configured.apk`. Installing it over the previous build preserves app data and its anonymous sharing identity.
 
 ## iPhone
+
+The [SchoolHelp website](https://just-crow.github.io/SchoolHelp/) also runs on iPhone and can be added to the Home Screen from Safari. It uses browser-compatible local models and the same sharing backend. Browser background behavior differs from the native app; see `web/README.md`.
 
 See `ios/README.md`. The source targets iOS 18 or later and uses the same codes, anonymous Supabase identity, ordered M4A queue, and solution JSON as Android. An installable iPhone build requires macOS with Xcode. Apple push notifications and TestFlight require Apple developer signing and APNs setup. The iPhone project has not been compiled or run on Apple hardware from this Windows workspace.
 

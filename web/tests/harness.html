@@ -1,0 +1,6 @@
+<!doctype html><html><head><base href="/"><title>SchoolHelp browser verification</title></head><body><h1>SchoolHelp browser verification</h1><button id="audio">Verify AAC export</button><button id="seed">Load listening fixture</button><pre id="result"></pre><a href="/">Open application</a><script type="module">
+import {m4a,pcmWave} from '/src/ai.js';import {put} from '/src/store.js';import {defaults} from '/src/core.js';
+const output=document.querySelector('#result');let audio;
+document.querySelector('#audio').onclick=async()=>{try{output.textContent='Converting…';audio=await m4a(pcmWave(Int16Array.from({length:24000*20},(_,i)=>Math.sin(i/24000*Math.PI*2*440)*2000),24000));output.textContent=`PASS AAC export: ${audio.type}, ${audio.size} bytes`}catch(error){output.textContent='FAIL '+error.stack}};
+document.querySelector('#seed').onclick=async()=>{try{if(!audio)throw Error('Verify AAC first');await put('session',{photos:[],selected:0,solution:{problems:[{number:'1',question:'Audio fixture',answer:'Test recording',spokenText:'Test recording',unreadable:false}]},recording:audio,position:8,stage:'',screen:'home',mode:'own'});await put('settings',defaults);output.textContent='PASS fixture saved. Open application.'}catch(error){output.textContent='FAIL '+error.message}};
+</script></body></html>
