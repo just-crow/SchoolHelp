@@ -1,0 +1,4 @@
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="images" path="images/" />
+    <files-path name="session_images" path="session/images/" />
+</paths>

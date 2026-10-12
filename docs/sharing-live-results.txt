@@ -1,0 +1,7 @@
+PASS unauthenticated function access rejected
+PASS signed upload, checksum and idempotent publication
+PASS joining by code and verified private-file download
+PASS later publication queues without removing the current item; sharing off preserves joined listeners
+PASS removed listener denied new queue access
+PASS public key cannot enumerate sharing codes
+OK (live Supabase Auth, Edge Function, Storage and queue checks)

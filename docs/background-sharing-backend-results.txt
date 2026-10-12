@@ -1,0 +1,12 @@
+PASS anonymous clients cannot read profiles or enumerate codes
+PASS authenticated clients cannot call privileged join
+PASS publication retries keep the same sequence
+PASS late join starts at latest item and includes future publications
+PASS repeated join keeps original cursor
+PASS invalid code, own code, and disabled owner are rejected
+PASS ten listener limit is enforced
+PASS rotation rejects old code and preserves existing membership
+PASS join attempts are throttled after twenty per hour
+PASS expired items are excluded from fresh joins
+PASS disabled sharing blocks publishing without deleting earlier items
+OK (11 backend tests)

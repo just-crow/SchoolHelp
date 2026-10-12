@@ -1,0 +1,56 @@
+name: SchoolHelp
+options:
+  bundleIdPrefix: com.schoolhelp
+  deploymentTarget:
+    iOS: '18.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.9'
+    TARGETED_DEVICE_FAMILY: '1'
+    CODE_SIGN_STYLE: Automatic
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk.git
+    from: 12.0.0
+  LiteRTLM:
+    url: https://github.com/google-ai-edge/LiteRT-LM.git
+    exactVersion: 0.18.0
+  sherpa-onnx:
+    url: https://github.com/k2-fsa/sherpa-onnx.git
+    exactVersion: 1.13.8
+targets:
+  SchoolHelp:
+    type: application
+    platform: iOS
+    sources:
+      - path: SchoolHelp
+        excludes:
+          - Info.plist
+          - SchoolHelp.entitlements
+          - Models
+      - path: SchoolHelp/Models
+        type: folder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.schoolhelp.app
+        INFOPLIST_FILE: SchoolHelp/Info.plist
+        CODE_SIGN_ENTITLEMENTS: SchoolHelp/SchoolHelp.entitlements
+    dependencies:
+      - package: Firebase
+        product: FirebaseCore
+      - package: Firebase
+        product: FirebaseMessaging
+      - package: LiteRTLM
+        product: LiteRTLM
+      - package: sherpa-onnx
+        product: sherpa-onnx
+  SchoolHelpTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [SchoolHelpTests]
+    dependencies: [SchoolHelp]
+  SchoolHelpUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [SchoolHelpUITests]
+    dependencies: [SchoolHelp]

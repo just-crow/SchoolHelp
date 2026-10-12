@@ -1,0 +1,1 @@
+{"ownerPublishes":["first","second","third"],"listenerA":{"consumed":["first"],"next":"second"},"listenerB":{"consumed":[],"next":"first"},"ownerLeavesListening":true,"expected":"Listener queues remain independent and ordered"}
