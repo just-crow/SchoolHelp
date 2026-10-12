@@ -12,4 +12,6 @@ Passed:
 - Browser WAV→AAC/M4A export of a twenty-second fixture, duration loading while paused, restored eight-second position, double tap seeking to thirteen seconds, triple tap playback, 1.5-second hold restart, three-second hold completion, Back/Home persistence after reload.
 - Production English Kokoro, Polish Piper and WebGPU SmolVLM model loading; English and Polish initialization generates a short utterance locally.
 
+The initial local vision attempt on the dense biology sample did not return usable structured answers. The worker now places images before the task instructions and offers one local structuring repair. This smaller model remains experimental; do not treat initialization as a successful end-to-end solving acceptance check. OpenRouter is the stronger explicit option.
+
 No paid OpenRouter generation request was made. The paid-request paths use mocked responses in tests. Real provider generation, local-model answer quality, two physical native/web devices, Safari camera/locked-screen audio, PWA installation and physical earbuds still need device acceptance testing. Browser background synchronization is intentionally described as limited; push delivery is not configured for the website.

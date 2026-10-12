@@ -12,11 +12,11 @@ self.onmessage=async({data})=>{
    vision??=await AutoModelForVision2Seq.from_pretrained(modelId,{revision,device:'webgpu',dtype:'q4',progress_callback:p=>progress(id,p)});
    if(type==='solve'){
     const images=await Promise.all(data.images.map(url=>RawImage.read(url)));
-    const content=[{type:'text',text:data.prompt},...images.flatMap((_,i)=>[{type:'text',text:`Page ${i+1} of ${images.length}`},{type:'image'}])];
-    const text=processor.apply_chat_template([{role:'user',content}],{add_generation_prompt:true});
-    const inputs=await processor(text,images);
-    const outputs=await vision.generate({...inputs,max_new_tokens:2048,do_sample:false});
-    result=processor.batch_decode(outputs.slice(null,[inputs.input_ids.dims.at(-1),null]),{skip_special_tokens:true})[0];
+    const content=[...images.flatMap((_,i)=>[{type:'text',text:`Page ${i+1} of ${images.length}`},{type:'image'}]),{type:'text',text:data.prompt+'\nReturn the JSON object now. Do not describe the photograph.'}];
+    const messages=[{role:'user',content}];
+    const complete=async()=>{const text=processor.apply_chat_template(messages,{add_generation_prompt:true});const inputs=await processor(text,images);const outputs=await vision.generate({...inputs,max_new_tokens:2048,do_sample:false});return processor.batch_decode(outputs.slice(null,[inputs.input_ids.dims.at(-1),null]),{skip_special_tokens:true})[0]};
+    result=await complete();
+    if(!result.includes('"problems"')){progress(id,'Structuring the local answer…');messages.push({role:'assistant',content:result},{role:'user',content:'Convert your answer into JSON only: {"problems":[{"number":"1","page":1,"question":"question text","answer":"answer","explanation":"","spokenText":"plain spoken words and placement instructions","unreadable":false}]}. Use spoken words, not mathematical notation.'});result=await complete()}
    }else result=true;
   }else if(type==='speech'||type==='speech-install'){
    if(data.language==='pl'){
