@@ -85,8 +85,8 @@ import CryptoKit
     var hasKey:Bool { !(Keychain.get("openrouter-key") ?? "").isEmpty }
     func solve() {
         guard !settings.requestedLanguage.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else {error="Enter an answer language before solving.";return}
-        guard !photos.isEmpty else{error="Add a photo first";return}
-        generation?.cancel();busy="Reading all pages";error=""
+        guard !photos.isEmpty || !(settings.context ?? "").trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else{error="Add a photo or enter context first";return}
+        generation?.cancel();busy=photos.isEmpty ? "Working on your text request":"Reading all pages";error=""
         sharing.store.put("generation-job","config",0,Data("solving".utf8));interrupted=true
         generation=Task {
             do {

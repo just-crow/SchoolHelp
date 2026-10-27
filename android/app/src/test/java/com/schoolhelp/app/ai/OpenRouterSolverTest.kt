@@ -35,6 +35,20 @@ class OpenRouterSolverTest {
         } finally { page.delete() }
     }
 
+    @Test fun contextOnlyWorksWithoutPhotosAndEmptyRequestsAreRejected() = runBlocking {
+        val answer = """{"problems":[{"number":"1","answer":"Answer.","spokenText":"Answer."}]}"""
+        server.enqueue(MockResponse().setBody(JSONObject().put("choices", JSONArray().put(JSONObject().put("message", JSONObject().put("content", answer)))).toString()))
+        val settings = AppSettings(modelId = "fixture/vision", context = "Explain what a cell is.")
+        assertEquals(1, solver.solve(emptyList(), "test-secret", settings).problems.size)
+        val messages = JSONObject(server.takeRequest().body.readUtf8()).getJSONArray("messages")
+        val content = messages.getJSONObject(1).getJSONArray("content")
+        assertEquals(2, content.length())
+        assertTrue(content.getJSONObject(1).getString("text").contains(settings.context))
+        assertTrue(messages.getJSONObject(0).getString("content").contains("complete text-only task"))
+        assertNotNull(runCatching { solver.solve(emptyList(), "test-secret", settings.copy(context = "  ")) }.exceptionOrNull())
+        assertEquals(1, server.requestCount)
+    }
+
     @Test fun onlyOffersImageCapableModels() = runBlocking {
         server.enqueue(MockResponse().setBody("""{"data":[
             {"id":"text-only","name":"Text","architecture":{"input_modalities":["text"]}},

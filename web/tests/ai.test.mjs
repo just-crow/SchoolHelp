@@ -38,3 +38,19 @@ test('optional user context reaches the vision request without becoming speech i
   assert.ok(!JSON.stringify(calls[1].body).includes(settings.context));
  }finally{globalThis.fetch=original;globalThis.FileReader=reader}
 });
+
+test('context-only requests need no images and empty requests make no paid call',async()=>{
+ const original=globalThis.fetch,calls=[];
+ globalThis.fetch=async(url,options)=>{calls.push(JSON.parse(options.body));return Response.json({choices:[{message:{content:JSON.stringify(answer('Cells are the basic unit of life.'))}}]})};
+ try {
+  const s={...defaults,visionModel:'fixture/vision',context:'Explain what a cell is.'};
+  const result=await solveRemote([],s,'fixture');
+  assert.equal(calls.length,1);assert.ok(result.problems.length);
+  const content=calls[0].messages[1].content;
+  assert.equal(content.filter(p=>p.type==='image_url').length,0);
+  assert.ok(content.some(p=>p.text?.includes(s.context)));
+  assert.ok(calls[0].messages[0].content.includes('complete text-only task'));
+  await assert.rejects(solveRemote([],{...s,context:'  '},'fixture'),/photo or enter context/);
+  assert.equal(calls.length,1);
+ }finally{globalThis.fetch=original}
+});

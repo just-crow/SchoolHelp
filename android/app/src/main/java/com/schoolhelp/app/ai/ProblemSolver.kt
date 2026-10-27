@@ -32,14 +32,14 @@ class LocalProblemSolver {
     private val dispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 
     suspend fun solve(model: File, images: List<File>, cache: File, settings: AppSettings): Solution = withContext(dispatcher) {
-        require(images.isNotEmpty())
+        require(images.isNotEmpty() || settings.context.isNotBlank()) { "Add a photo or enter context first." }
         val engine = Engine(EngineConfig(
             modelPath = model.absolutePath,
             backend = Backend.GPU(),
             visionBackend = Backend.GPU(),
             cacheDir = cache.absolutePath,
             maxNumTokens = 32768,
-            maxNumImages = images.size,
+            maxNumImages = images.size.coerceAtLeast(1),
         ))
         try {
             engine.initialize()
@@ -102,7 +102,7 @@ class OpenRouterSolver(
     suspend fun solve(image: File, key: String, settings: AppSettings): Solution = solve(listOf(image), key, settings)
 
     suspend fun solve(images: List<File>, key: String, settings: AppSettings): Solution = withContext(Dispatchers.IO) {
-        require(images.isNotEmpty())
+        require(images.isNotEmpty() || settings.context.isNotBlank()) { "Add a photo or enter context first." }
         val cleanKey = ApiKey.normalize(key)
         require(settings.modelId.isNotBlank()) { "Select an OpenRouter vision model in settings." }
         val content = JSONArray()

@@ -296,7 +296,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val snapshot = state.value
         if(snapshot.sharedListening) { error("Return to your own recording before solving new pages."); return }
         val photos = snapshot.photos
-        if (photos.isEmpty()) return
+        if (photos.isEmpty() && snapshot.settings.context.isBlank() && !(reuseSolution && snapshot.solution != null)) { error("Add a photo or enter context first."); return }
         val cachedSolution = if(reuseSolution) snapshot.solution else null
         val config = snapshot.settings
         if (config.outputLanguage.isBlank()) { error("Enter an answer language before solving."); return }
@@ -324,7 +324,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 mutable.update { it.copy(busy = if (config.provider == AiProvider.LOCAL) "Reading and solving on your phone" else "Reading and solving with OpenRouter", error = null, solution = cachedSolution, recording = null) }
                 mutable.update { it.copy(savedPositionMs = 0) }
                 saveSession()
-                mutable.update { it.copy(busy = "Reading ${photos.size} page${if (photos.size == 1) "" else "s"} together") }
+                mutable.update { it.copy(busy = if (photos.isEmpty()) "Working on your text request" else "Reading ${photos.size} page${if (photos.size == 1) "" else "s"} together") }
                 val solution = cachedSolution ?: if (config.provider == AiProvider.LOCAL)
                     local.solve(models.visionFile(), photos, getApplication<Application>().cacheDir, config)
                 else remote.solve(photos, preferences.apiKey(), config)

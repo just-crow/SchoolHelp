@@ -145,7 +145,7 @@ private fun HomeScreen(state: UiState, model: AppViewModel) {
         onValueChange = { model.settings(state.settings.copy(context = it.take(8000))) },
         label = { Text("Context for the AI (optional)") },
         placeholder = { Text("Add background, definitions, or instructions for these questions…") },
-        supportingText = { Text("Used with your photos when solving. Saved until you clear it. Not read aloud as a separate note.") },
+        supportingText = { Text("Used with photos or by itself when solving. Saved until you clear it. Not read aloud as a separate note.") },
         minLines = 3, maxLines = 8, enabled = state.busy == null, modifier = Modifier.fillMaxWidth())
     if (state.settings.context.isNotEmpty()) TextButton(onClick = { model.settings(state.settings.copy(context = "")) }, enabled = state.busy == null) { Text("Clear context") }
     if (image == null) {
@@ -206,12 +206,13 @@ private fun HomeScreen(state: UiState, model: AppViewModel) {
             Text("Up to ${UiState.MAX_PHOTOS} photos. Pages are read together in this order, including questions that continue on the next page. Your session is saved on this phone until you clear it.", color = Muted, style = MaterialTheme.typography.bodySmall)
             if (state.settings.provider == AiProvider.OPENROUTER) Text("These photos will be sent to OpenRouter and your selected AI provider.", color = Muted, style = MaterialTheme.typography.bodySmall)
             if (state.settings.speechProvider == AiProvider.OPENROUTER) Text("Answer text will be sent to OpenRouter for speech.", color = Muted, style = MaterialTheme.typography.bodySmall)
-            Button(onClick = model::solve, enabled = state.busy == null && state.downloading == null,
+
+        }
+    }
+            Button(onClick = model::solve, enabled = state.busy == null && state.downloading == null && (state.photos.isNotEmpty() || state.settings.context.isNotBlank()),
                 modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(14.dp)) {
                 Icon(Icons.Outlined.AutoAwesome, null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(10.dp)); Text("Solve & prepare speech")
             }
-        }
-    }
     state.busy?.let { status ->
         Surface(color = Sage, shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

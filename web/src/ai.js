@@ -10,6 +10,7 @@ export async function catalog(){const data=await(await remote('models')).json();
 export async function speechCatalog(){const data=await(await remote('models?output_modalities=speech')).json();return data.data||[]}
 export async function dataURL(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob)})}
 export async function solveRemote(photos,s,key,signal){
+ if(!photos.length&&!s.context?.trim())throw Error('Add a photo or enter context first.');
  if(!key||!s.visionModel)throw Error('Open Settings and save your API key and vision model.');
  const content=[{type:'text',text:'Read all pages together, in order. Join questions continued across pages and answer each once.'}];
  if(contextNote(s))content.push({type:'text',text:contextNote(s)});

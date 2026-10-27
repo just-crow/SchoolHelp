@@ -49,7 +49,7 @@ struct ContentView:View {
                     Text("All answers and spoken labels use this language. No automatic detection. Solve again to apply changes.").font(.caption).foregroundStyle(.secondary)
                     TextField("Context for the AI (optional)",text:Binding(get:{model.settings.context ?? ""},set:{model.settings.context=String($0.prefix(8000));model.saveSettings()}),axis:.vertical)
                         .lineLimit(3...8).textFieldStyle(.roundedBorder).disabled(!model.busy.isEmpty)
-                    Text("Used with your photos when solving. Saved until cleared; not read aloud as a separate note.").font(.caption).foregroundStyle(.secondary)
+                    Text("Used with photos or by itself when solving. Saved until cleared; not read aloud as a separate note.").font(.caption).foregroundStyle(.secondary)
                     if !(model.settings.context ?? "").isEmpty {Button("Clear context"){model.settings.context="";model.saveSettings()}.disabled(!model.busy.isEmpty)}
                     if model.interrupted {Button("Continue speech from saved answer"){model.retrySpeech()};Button("Retry solving pages"){model.solve()}}
                     if !model.busy.isEmpty {ProgressView(model.busy);Button("Cancel"){model.cancelWork()}}
@@ -61,8 +61,9 @@ struct ContentView:View {
                         HStack {Button("Previous"){model.selected=max(0,model.selected-1)}.disabled(model.selected==0);Button("Next"){model.selected=min(model.photos.count-1,model.selected+1)}.disabled(model.selected==model.photos.count-1)}
                         HStack {Button("Rotate"){model.transformPhoto(crop:false)};Button("Crop"){crop=true};Button("Remove"){model.removePhoto()}}
                         HStack {Button("Earlier"){model.movePhoto(-1)};Button("Later"){model.movePhoto(1)}}
-                        Button("Solve and prepare speech"){model.solve()}.buttonStyle(.borderedProminent).disabled(!model.busy.isEmpty)
+
                     }
+                    Button("Solve and prepare speech"){model.solve()}.buttonStyle(.borderedProminent).disabled(!model.busy.isEmpty || (model.photos.isEmpty && (model.settings.context ?? "").trimmingCharacters(in:.whitespacesAndNewlines).isEmpty))
                     if model.ownAudio != nil {Button("Listen to my answer"){model.shared=false;model.screen="listen";UserDefaults.standard.set(true,forKey:"screen-listen");model.playback.load(model.ownAudio!,position:UserDefaults.standard.double(forKey:"own-position"))}}
                     if model.shared {Button("Open my own workspace"){model.ownWorkspace()}}
                     Divider()

@@ -39,3 +39,7 @@ Before solving, enter Answer and speech language on Home. This saved free-text f
 ## Optional context in 1.1.5
 
 Home now has a multiline Context for the AI field before photo capture/import. Supply background, definitions or task instructions, up to 8,000 characters. The note is saved locally until cleared and sent with every new solve to the chosen vision engine, including local inference. It is user content, separate from the system response contract and the page images. Speech requests receive only the generated answer script, not the raw note. Clear context before unrelated work. Editing context requires solving again; retrying speech from an existing answer does not re-solve it. Native iOS source is updated but remains untested without Xcode.
+
+## One generation button in 1.1.6
+
+The existing Solve & prepare speech button is now always displayed, enabled when there are photos, nonblank context, or both (unless already processing). No second generation button was added. Context-only is a text task for the selected answer model and then uses the same speech, listening, persistence and sharing pipeline. Empty requests are rejected before network calls. Photo requests still combine the context and all ordered pages. Local engines use their existing downloaded multimodal model for text-only inference; browser offline quality remains experimental.
