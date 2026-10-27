@@ -22,6 +22,9 @@ class MainActivity : ComponentActivity() {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T = (application as SchoolHelpApplication).model as T
         }
     }
+    private val updates by lazy { AppUpdates(this) }
+    fun canShowUpdate() = model.state.value.screen == Screen.HOME && model.state.value.busy == null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         volumeControlStream = AudioManager.STREAM_MUSIC
@@ -70,6 +73,7 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         (application as SchoolHelpApplication).visible = true
         if(model.sharing.state.value.configured) model.syncSharing()
+        updates.onStart()
     }
 
     override fun onStop() {

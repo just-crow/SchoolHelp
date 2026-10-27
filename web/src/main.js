@@ -148,7 +148,23 @@ async function boot(){
  const saved=await get('session');if(saved)Object.assign(state,saved);state.settings={...defaults,...await get('settings')};const savedKey=await get('api-key');if(savedKey){key=savedKey;remember=true}
  await sharing.init();refreshPhotos();state.busy='';if(state.screen==='settings')state.screen='home';if(state.screen==='listen'){if(state.mode==='shared')await loadShared();else if(state.recording)playback.load(state.recording,state.position,state.settings.speed);else state.screen='home';playback.awake(true)}
  render();if(sharing.code||sharing.following)sharing.sync();setInterval(()=>{if(document.visibilityState==='visible'&&(sharing.code||sharing.following))sharing.sync()},15000);
- if('serviceWorker'in navigator)navigator.serviceWorker.register(new URL('./sw.js',document.baseURI)).catch(()=>{});
+ if('serviceWorker'in navigator)navigator.serviceWorker.register(new URL('./sw.js',document.baseURI),{updateViaCache:'none'}).catch(()=>{});
+ // Save first and update only at rest; never interrupt listening, paid requests, or text entry.
+ let checkingUpdate=false;
+ async function checkUpdate(){
+  if(import.meta.env.DEV||checkingUpdate||document.visibilityState!=='visible'||state.screen!=='home'||state.busy||['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName))return;
+  checkingUpdate=true;
+  try{
+   const response=await fetch(new URL('./version.json',document.baseURI),{cache:'no-store'});
+   if(!response.ok)return;
+   const {version}=await response.json();
+   if(version&&version!==__APP_VERSION__&&state.screen==='home'&&!state.busy){
+    await save();const registration=await navigator.serviceWorker?.getRegistration();await registration?.update();location.reload();
+   }
+  }catch{}finally{checkingUpdate=false}
+ }
+ setInterval(checkUpdate,60000);window.addEventListener('online',checkUpdate);
+ document.addEventListener('visibilitychange',checkUpdate);checkUpdate();
  navigator.storage?.persist?.().catch(()=>{});
 }
 boot().catch(error=>{app.innerHTML=`<main class="content"><h1>SchoolHelp</h1><p>Browser storage could not be opened. Allow website storage and reload.</p><p>${esc(error.message)}</p></main>`});
