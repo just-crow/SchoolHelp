@@ -18,6 +18,8 @@ import java.nio.ByteOrder
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.coroutineContext
 
+fun hasDefaultSpeechVoice(model: String) = model.startsWith("fish-audio/")
+
 data class SpeechModel(val id: String, val name: String, val voices: List<String>)
 
 class OpenRouterSpeech(
@@ -45,11 +47,12 @@ class OpenRouterSpeech(
     suspend fun generate(text: String, key: String, settings: AppSettings, output: File) = withContext(Dispatchers.IO) {
         val cleanKey = ApiKey.normalize(key)
         require(settings.speechModelId.isNotBlank()) { "Choose an OpenRouter speech model in settings." }
-        require(settings.speechVoice.isNotBlank()) { "Choose a speech voice in settings." }
+        require(settings.speechVoice.isNotBlank() || hasDefaultSpeechVoice(settings.speechModelId)) { "Choose a speech voice in settings." }
         require(text.isNotBlank()) { "There is no text to read." }
-        val format = if (settings.speechModelId.startsWith("google/")) "pcm" else "mp3"
+        val format = if ((settings.speechModelId.startsWith("google/") || settings.speechModelId.startsWith("heygen/"))) "pcm" else "mp3"
         val body = JSONObject().put("model", settings.speechModelId).put("input", text)
-            .put("voice", settings.speechVoice).put("response_format", format)
+            .put("response_format", format)
+        if (settings.speechVoice.isNotBlank()) body.put("voice", settings.speechVoice.trim())
         val request = Request.Builder().url("${baseUrl}audio/speech").header("Authorization", "Bearer $cleanKey")
             .header("X-Title", "SchoolHelp").post(body.toString().toRequestBody("application/json".toMediaType())).build()
         val partial = File(output.parentFile, "${output.name}.partial")

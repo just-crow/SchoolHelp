@@ -306,7 +306,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if ((config.provider == AiProvider.OPENROUTER || config.speechProvider == AiProvider.OPENROUTER) && !snapshot.hasKey) {
             error("Save your OpenRouter API key in settings first."); return
         }
-        if (config.speechProvider == AiProvider.OPENROUTER && (config.speechModelId.isBlank() || config.speechVoice.isBlank())) {
+        if (config.speechProvider == AiProvider.OPENROUTER && (config.speechModelId.isBlank() || (config.speechVoice.isBlank() && !com.schoolhelp.app.audio.hasDefaultSpeechVoice(config.speechModelId)))) {
             error("Choose an OpenRouter speech model and voice in settings first."); return
         }
         if (cachedSolution == null && config.provider == AiProvider.LOCAL && !models.installed(ModelCatalog.vision)) {

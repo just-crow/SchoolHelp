@@ -17,3 +17,9 @@ A source edit alone does not produce an Android binary. The release step is requ
 ## Native iPhone
 
 Native updates require signed builds distributed through TestFlight or the App Store; this source project cannot silently replace itself. The website installed on an iPhone home screen uses the web update mechanism above. No Apple distribution account has been purchased or configured here.
+
+## Speech compatibility in 1.1.1
+
+Fish Audio publishes no preset supported_voices list in OpenRouter's Models API. The settings now offer Provider default voice (omit voice entirely), plus an optional custom Fish Audio reference voice ID. The app no longer blocks Fish Audio generation when voice is empty. Other providers still require explicit voices. Do not copy OpenAI voice names into Fish Audio settings. Gemini and HeyGen request PCM; other models request MP3. No paid provider generation was performed during verification; requests and audio handling are checked with mock responses.
+
+Sources: https://openrouter.ai/docs/guides/overview/multimodal/tts and https://openrouter.ai/api/v1/models?output_modalities=speech (checked October 27, 2026).

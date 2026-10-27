@@ -19,9 +19,9 @@ export async function solveRemote(photos,s,key,signal){
  if(needsRewrite(solution))throw Error('The model kept returning visual notation. Choose another vision model.');return solution;
 }
 export async function speechRemote(text,s,key,signal){
- if(!key||!s.speechModel||!s.speechVoice)throw Error('Choose an OpenRouter speech model and voice in Settings.');
- const pcm=s.speechModel.startsWith('google/');
- const response=await remote('audio/speech',key,{model:s.speechModel,input:text,voice:s.speechVoice,response_format:pcm?'pcm':'mp3'},signal);
+ if(!key||!s.speechModel||(!s.speechVoice&&!s.speechModel.startsWith("fish-audio/")))throw Error('Choose an OpenRouter speech model and voice in Settings.');
+ const pcm=(s.speechModel.startsWith('google/')||s.speechModel.startsWith('heygen/'));
+ const response=await remote('audio/speech',key,{model:s.speechModel,input:text,...(s.speechVoice?.trim()?{voice:s.speechVoice.trim()}:{}),response_format:pcm?'pcm':'mp3'},signal);
  const blob=await response.blob();if(!blob.size||!blob.type.startsWith('audio/'))throw Error('OpenRouter returned no supported speech audio.');
  if(/audio\/(?:pcm|l16)/i.test(blob.type)){const rate=Number(blob.type.match(/rate=(\d+)/)?.[1]||24000);if(rate<8000||rate>192000||blob.size%2)throw Error('OpenRouter returned incomplete PCM audio. Retry speech.');return pcmWave(new Int16Array(await blob.arrayBuffer()),rate)}return blob;
 }

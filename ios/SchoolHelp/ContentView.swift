@@ -92,8 +92,13 @@ struct ContentView:View {
                 Button("Load vision and speech models"){Task {visionModels=(try? await model.remote.models(speech:false)) ?? [];speechModels=(try? await model.remote.models(speech:true)) ?? []}}
                 Picker("Vision model",selection:$model.settings.visionModel){Text("Choose model").tag("");ForEach(visionModels){Text($0.name).tag($0.id)}}
                 Picker("Speech model",selection:$model.settings.speechModel){Text("Choose model").tag("");ForEach(speechModels){Text($0.name).tag($0.id)}}
+                    .onChange(of:model.settings.speechModel){_,id in model.settings.speechVoice=speechModels.first(where:{$0.id==id})?.voices.first ?? ""}
                 let voices=speechModels.first(where:{$0.id==model.settings.speechModel})?.voices ?? []
-                if voices.isEmpty {TextField("Speech voice",text:$model.settings.speechVoice)}
+                if model.settings.speechModel.hasPrefix("fish-audio/") {
+                    Text("Fish Audio has no preset voice list. Leave the voice ID empty for the provider default.")
+                    TextField("Fish Audio voice ID (optional)",text:$model.settings.speechVoice)
+                    Button("Use provider default voice"){model.settings.speechVoice=""}
+                } else if voices.isEmpty {TextField("Speech voice",text:$model.settings.speechVoice)}
                 else {Picker("Speech voice",selection:$model.settings.speechVoice){Text("Choose voice").tag("");ForEach(voices,id:\.self){Text($0).tag($0)}}}
                 HStack {Text("Playback speed");Slider(value:Binding(get:{Double(model.settings.speed)},set:{model.settings.speed=Float($0)}),in:0.5...2,step:0.1)}
                 Toggle("Ready sound",isOn:$model.settings.readySound)

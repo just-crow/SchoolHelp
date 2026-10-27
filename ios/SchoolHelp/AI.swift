@@ -73,9 +73,11 @@ final class OpenRouter {
         return solution
     }
     func generateSpeech(text:String,key:String,settings:AISettings,output:URL) async throws->URL {
-        guard !settings.speechModel.isEmpty && !settings.speechVoice.isEmpty else{throw AppError.message("Choose a speech model and voice")}
-        let pcm=settings.speechModel.hasPrefix("google/")
-        let (data,response)=try await call("audio/speech",key:key,body:["model":settings.speechModel,"input":text,"voice":settings.speechVoice,"response_format":pcm ? "pcm":"mp3"])
+        guard !settings.speechModel.isEmpty && (!settings.speechVoice.isEmpty || settings.speechModel.hasPrefix("fish-audio/")) else{throw AppError.message("Choose a speech model and voice")}
+        let pcm=settings.speechModel.hasPrefix("google/") || settings.speechModel.hasPrefix("heygen/")
+        var body:[String:Any]=["model":settings.speechModel,"input":text,"response_format":pcm ? "pcm":"mp3"]
+        if !settings.speechVoice.isEmpty {body["voice"]=settings.speechVoice}
+        let (data,response)=try await call("audio/speech",key:key,body:body)
         guard !data.isEmpty else{throw AppError.message("OpenRouter returned no audio")}
         let type=response.value(forHTTPHeaderField:"Content-Type") ?? ""
         guard type.hasPrefix("audio/") else{throw AppError.message("OpenRouter returned an unsupported audio format")}

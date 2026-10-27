@@ -86,7 +86,7 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
             }
             OutlinedButton(onClick = { showVoices = true; if (state.speechModels.isEmpty()) model.loadSpeechModels() },
                 enabled = settings.speechModelId.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
-                Text(settings.speechVoice.ifBlank { "Choose a speech voice" }, Modifier.weight(1f), maxLines = 2)
+                Text(settings.speechVoice.ifBlank { if (settings.speechModelId.startsWith("fish-audio/")) "Provider default voice" else "Choose a speech voice" }, Modifier.weight(1f), maxLines = 2)
                 Icon(Icons.Outlined.ExpandMore, null)
             }
             if (state.loadingSpeechModels) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -198,7 +198,12 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
         val voices = state.speechModels.find { it.id == settings.speechModelId }?.voices.orEmpty()
         AlertDialog(onDismissRequest = { showVoices = false }, title = { Text("Choose a speech voice") }, text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (state.loadingSpeechModels) LinearProgressIndicator(Modifier.fillMaxWidth())
+                if (settings.speechModelId.startsWith("fish-audio/")) {
+                    Text("Fish Audio does not publish a preset voice list through OpenRouter. Use its default voice, or enter a Fish Audio reference voice ID. OpenAI voice names such as alloy do not apply.")
+                    TextButton(onClick = { model.settings(settings.copy(speechVoice = "")); showVoices = false }) { Text("Use provider default voice") }
+                    OutlinedTextField(settings.speechVoice, { model.settings(settings.copy(speechVoice = it.trim())) },
+                        label = { Text("Fish Audio voice ID (optional)") }, singleLine = true)
+                } else if (state.loadingSpeechModels) LinearProgressIndicator(Modifier.fillMaxWidth())
                 else if (voices.isEmpty()) {
                     Text("This model has no voice list available. Enter a voice ID from its OpenRouter model page.")
                     OutlinedTextField(settings.speechVoice, { model.settings(settings.copy(speechVoice = it.trim())) },

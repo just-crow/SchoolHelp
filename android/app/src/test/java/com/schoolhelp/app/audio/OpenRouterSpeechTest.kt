@@ -90,6 +90,18 @@ class OpenRouterSpeechTest {
         assertNoRecording(output())
     }
 
+    @Test fun fishAudioUsesDefaultWithoutAVoiceAndAcceptsAReferenceId() = runBlocking {
+        for (voice in listOf("", "reference-id")) {
+            server.enqueue(MockResponse().setHeader("Content-Type", "audio/mpeg").setBody("ID3-test"))
+            val target = File(folder.root, "fish-${voice.length}.mp3")
+            speech.generate("Hello", "secret", settings.copy(speechModelId = "fish-audio/s2.1-pro", speechVoice = voice), target)
+            val body = JSONObject(server.takeRequest().body.readUtf8())
+            assertEquals("mp3", body.getString("response_format"))
+            if (voice.isEmpty()) assertFalse(body.has("voice")) else assertEquals(voice, body.getString("voice"))
+            assertTrue(target.exists())
+        }
+    }
+
     @Test fun cancellationRemovesPartialAudio() = runBlocking {
         server.enqueue(MockResponse().setHeader("Content-Type", "audio/mpeg")
             .setBody("delayed audio").setBodyDelay(3, TimeUnit.SECONDS))

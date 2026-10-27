@@ -10,3 +10,16 @@ test('all ordered photos reach one request; notation is rewritten before speech'
 test('speech uses selected model and voice without a provider fallback',async()=>{const original=globalThis.fetch;let body;globalThis.fetch=async(url,options)=>{body=JSON.parse(options.body);return new Response(new Uint8Array([1,2]),{headers:{'Content-Type':'audio/mpeg'}})};try{const blob=await speechRemote('Write one half.',{speechModel:'fixture/speech',speechVoice:'fixture-voice'},'sk-or-v1-fixture');assert.equal(blob.type,'audio/mpeg');assert.equal(body.model,'fixture/speech');assert.equal(body.voice,'fixture-voice');assert.equal(body.input,'Write one half.')}finally{globalThis.fetch=original}});
 test('Google PCM is wrapped only when the actual response is PCM',async()=>{const original=globalThis.fetch;try{globalThis.fetch=async()=>new Response(new Uint8Array([1,2,3,4]),{headers:{'Content-Type':'audio/pcm;rate=24000'}});const s={speechModel:'google/fixture',speechVoice:'fixture'};assert.equal((await speechRemote('hello',s,'fixture')).size,48);globalThis.fetch=async()=>new Response(new Uint8Array([1,2,3,4]),{headers:{'Content-Type':'audio/wav'}});assert.equal((await speechRemote('hello',s,'fixture')).size,4)}finally{globalThis.fetch=original}});
 test('payment failures are explicit and requests are not repeated',async()=>{const original=globalThis.fetch;let count=0;globalThis.fetch=async()=>{count++;return Response.json({error:{message:'credits'}},{status:402})};try{await assert.rejects(remote('chat/completions','fixture',{}),/credits/);assert.equal(count,1)}finally{globalThis.fetch=original}});
+
+test('Fish Audio omits voice for provider default and preserves custom reference IDs',async()=>{
+ const original=globalThis.fetch,calls=[];
+ globalThis.fetch=async(url,options)=>{calls.push(JSON.parse(options.body));return new Response(new Uint8Array([1,2]),{headers:{'Content-Type':'audio/mpeg'}})};
+ try {
+  await speechRemote('Hello',{speechModel:'fish-audio/s2.1-pro',speechVoice:''},'fixture');
+  assert.equal(calls[0].response_format,'mp3');assert.ok(!('voice' in calls[0]));
+  await speechRemote('Hello',{speechModel:'fish-audio/s2.1-pro',speechVoice:'reference-id'},'fixture');
+  assert.equal(calls[1].voice,'reference-id');assert.equal(calls.length,2);
+  await assert.rejects(speechRemote('Hello',{speechModel:'openai/tts-1',speechVoice:''},'fixture'),/voice/);
+  assert.equal(calls.length,2);
+ }finally{globalThis.fetch=original}
+});
