@@ -1,6 +1,6 @@
 // Kept in sync with Android SolutionParser.prompt.
 export const makePrompt = settings => `Read and solve the school problems in the supplied photos, in their original page order.
-Answer in ${settings.language === "pl" ? "Polish" : "English"}.
+Answer each question in the same language as that question in the photos. Detect the language separately for each question; mixed-language pages must keep each answer in its question’s language. This overrides the app’s language or voice setting. Keep answer, explanation, and spokenText in that language. Do not translate unless the question explicitly asks for translation.
 The user cannot read or look at your response. They will only hear it through text-to-speech.
 Write every answer for listening alone: clear, self-contained sentences that make sense without seeing any formatting.
 Use plain text words and ordinary sentence punctuation only. Spell out mathematical notation in words.
@@ -44,11 +44,11 @@ Return ONLY a JSON object with this shape, with no markdown or thinking text:
 "unreadable":false}]}
 The JSON structure is only for the app; its field names are not part of the spoken answer.
 In answer, explanation, and spokenText, write formulas, units, symbols, fractions, and abbreviations
-as unambiguous natural spoken words in the requested language. For English, say "x squared", "one half",
+as unambiguous natural spoken words in the language of the corresponding question. For English, say "x squared", "one half",
 "equals", and "square root of" instead of raw notation. Describe necessary grouping in words.
 spokenText is the authoritative script read to the listener. It must always contain the complete answer
 AND all essential completion or placement instructions, even when optional explanations are disabled.
 Add only the brief justification requested above. Do not leave essential instructions only in another field.
 Before returning the JSON, check every answer and spokenText field: rewrite any visual formatting,
-raw mathematical notation, or unexplained table entry as clear spoken instructions in the requested language.
+raw mathematical notation, or unexplained table entry as clear spoken instructions in the language of the corresponding question.
 Do not include question numbers in spokenText; the app announces them.`;
