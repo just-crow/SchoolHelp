@@ -47,6 +47,10 @@ struct ContentView:View {
                     TextField("Answer and speech language",text:Binding(get:{model.settings.requestedLanguage},set:{model.settings.outputLanguage=String($0.prefix(60));model.saveSettings()}))
                         .textFieldStyle(.roundedBorder).disabled(!model.busy.isEmpty)
                     Text("All answers and spoken labels use this language. No automatic detection. Solve again to apply changes.").font(.caption).foregroundStyle(.secondary)
+                    TextField("Context for the AI (optional)",text:Binding(get:{model.settings.context ?? ""},set:{model.settings.context=String($0.prefix(8000));model.saveSettings()}),axis:.vertical)
+                        .lineLimit(3...8).textFieldStyle(.roundedBorder).disabled(!model.busy.isEmpty)
+                    Text("Used with your photos when solving. Saved until cleared; not read aloud as a separate note.").font(.caption).foregroundStyle(.secondary)
+                    if !(model.settings.context ?? "").isEmpty {Button("Clear context"){model.settings.context="";model.saveSettings()}.disabled(!model.busy.isEmpty)}
                     if model.interrupted {Button("Continue speech from saved answer"){model.retrySpeech()};Button("Retry solving pages"){model.solve()}}
                     if !model.busy.isEmpty {ProgressView(model.busy);Button("Cancel"){model.cancelWork()}}
                     PhotosPicker(selection:$picked,maxSelectionCount:max(1,10-model.photos.count),matching:.images){Label("Add photos",systemImage:"photo.on.rectangle")}

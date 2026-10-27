@@ -35,3 +35,7 @@ The answer model supplies a new optional per-problem spokenLabel, with page and 
 ## Manual output language in 1.1.4
 
 Before solving, enter Answer and speech language on Home. This saved free-text field controls all generated answer text, page/question announcements and instructions. It replaces automatic output-language detection; foreign words are retained only when essential to the task. Existing English/Polish controls are now explicitly labeled Offline voice language and only select downloaded speech models. Choose a compatible OpenRouter voice for other languages. Changing the language requires solving again; saved recordings or retrying speech from old answers does not translate them. Android preferences, browser storage and iOS settings preserve the entry. Native iOS changes and tests remain unrun without Xcode.
+
+## Optional context in 1.1.5
+
+Home now has a multiline Context for the AI field before photo capture/import. Supply background, definitions or task instructions, up to 8,000 characters. The note is saved locally until cleared and sent with every new solve to the chosen vision engine, including local inference. It is user content, separate from the system response contract and the page images. Speech requests receive only the generated answer script, not the raw note. Clear context before unrelated work. Editing context requires solving again; retrying speech from an existing answer does not re-solve it. Native iOS source is updated but remains untested without Xcode.

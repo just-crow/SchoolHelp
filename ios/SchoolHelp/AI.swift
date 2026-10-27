@@ -9,6 +9,8 @@ struct RemoteModel: Identifiable {let id:String;let name:String;let voices:[Stri
 struct AISettings: Codable {
     var language="en"
     var outputLanguage:String? = nil
+    var context:String? = nil
+    var contextNote:String {let text=(context ?? "").trimmingCharacters(in:.whitespacesAndNewlines);return text.isEmpty ? "":"Additional context from the user (use for solving, do not read this note aloud):\n" + String(text.prefix(8000))}
     var requestedLanguage:String {outputLanguage ?? (language == "pl" ? "Polish":"English")}
     var explanations=false
     var answerProvider="local"
@@ -52,6 +54,7 @@ final class OpenRouter {
     func solve(images:[URL],key:String,settings:AISettings) async throws->Solution {
         guard !settings.visionModel.isEmpty else{throw AppError.message("Choose a vision model")}
         var content:[[String:Any]]=[["type":"text","text":"Read all pages in order. Join questions continued on later pages and answer each once."]]
+        if !settings.contextNote.isEmpty {content.append(["type":"text","text":settings.contextNote])}
         for (index,url) in images.enumerated() {
             let data=try Data(contentsOf:url)
             content.append(["type":"text","text":"Page \(index+1) of \(images.count)"])
@@ -125,6 +128,7 @@ enum LocalAI {
         try await engine.initialize()
         let conversation=try await engine.createConversation()
         var contents:[Content]=[.text(ListeningText.prompt(language:settings.requestedLanguage,explanations:settings.explanations))]
+        if !settings.contextNote.isEmpty {contents.append(.text(settings.contextNote))}
         for (index,url) in images.enumerated(){contents.append(.text("Page \(index+1) of \(images.count)"));contents.append(.imageFile(url.path))}
         let first=try await conversation.sendMessage(Message(contents:contents),extraContext:["enable_thinking":false]).toString
         var solution=try ListeningText.parse(first)

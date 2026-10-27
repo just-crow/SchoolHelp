@@ -47,6 +47,7 @@ class LocalProblemSolver {
             engine.createConversation(ConversationConfig()).use { conversation ->
                 val result = StringBuilder()
                 val content = mutableListOf<Content>(Content.Text(SolutionParser.prompt(settings.outputLanguage, settings.explanations)))
+                if (settings.context.isNotBlank()) content += Content.Text("Additional context from the user (use for solving, do not read this note aloud):\n${settings.context.trim().take(8000)}")
                 images.forEachIndexed { index, image ->
                     content += Content.Text("Page ${index + 1} of ${images.size}")
                     content += Content.ImageFile(image.absolutePath)
@@ -106,6 +107,8 @@ class OpenRouterSolver(
         require(settings.modelId.isNotBlank()) { "Select an OpenRouter vision model in settings." }
         val content = JSONArray()
             .put(JSONObject().put("type", "text").put("text", "Read all attached pages together in the supplied order. Solve each complete question once, joining any continuation on later pages. Follow the listening-only instructions."))
+        if (settings.context.isNotBlank()) content.put(JSONObject().put("type", "text").put("text",
+            "Additional context from the user (use for solving, do not read this note aloud):\n${settings.context.trim().take(8000)}"))
         images.forEachIndexed { index, image ->
             currentCoroutineContext().ensureActive()
             content.put(JSONObject().put("type", "text").put("text", "Page ${index + 1} of ${images.size}"))

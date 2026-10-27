@@ -23,3 +23,18 @@ test('Fish Audio omits voice for provider default and preserves custom reference
   assert.equal(calls.length,2);
  }finally{globalThis.fetch=original}
 });
+
+test('optional user context reaches the vision request without becoming speech input',async()=>{
+ const original=globalThis.fetch,reader=globalThis.FileReader,calls=[];globalThis.FileReader=Reader;
+ globalThis.fetch=async(url,options)=>{calls.push({url,body:JSON.parse(options.body)});return url.endsWith('audio/speech')?new Response(new Uint8Array([1,2]),{headers:{'Content-Type':'audio/mpeg'}}):Response.json({choices:[{message:{content:JSON.stringify(answer('Write one half.'))}}]})};
+ try {
+  const settings={...defaults,visionModel:'fixture/vision',context:'Use the definitions from chapter four.',speechModel:'fixture/tts',speechVoice:'fixture'};
+  const solution=await solveRemote([{blob:new Blob(['paper'],{type:'image/jpeg'})}],settings,'fixture');
+  const content=calls[0].body.messages[1].content;
+  assert.ok(content.some(p=>p.text?.includes(settings.context)));
+  assert.ok(!calls[0].body.messages[0].content.includes(settings.context));
+  await speechRemote(solution.problems[0].spokenText,settings,'fixture');
+  assert.equal(calls[1].body.input,'Write one half.');
+  assert.ok(!JSON.stringify(calls[1].body).includes(settings.context));
+ }finally{globalThis.fetch=original;globalThis.FileReader=reader}
+});

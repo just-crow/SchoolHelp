@@ -19,6 +19,22 @@ class OpenRouterSolverTest {
     @Before fun setup() { server.start(); solver = OpenRouterSolver(OkHttpClient(), server.url("/").toString()) }
     @After fun teardown() { server.shutdown() }
 
+    @Test fun contextIsIncludedAsUserTextWithThePhotos() = runBlocking {
+        val answer = """{"problems":[{"number":"1","answer":"Answer.","spokenText":"Answer."}]}"""
+        server.enqueue(MockResponse().setBody(JSONObject().put("choices", JSONArray().put(JSONObject().put("message", JSONObject().put("content", answer)))).toString()))
+        val page = File.createTempFile("context-paper", ".jpg")
+        try {
+            page.writeText("paper")
+            solver.solve(listOf(page), "test-secret", AppSettings(modelId = "fixture/vision", context = "Use definitions from chapter four."))
+            val messages = JSONObject(server.takeRequest().body.readUtf8()).getJSONArray("messages")
+            assertFalse(messages.getJSONObject(0).getString("content").contains("chapter four"))
+            val content = messages.getJSONObject(1).getJSONArray("content")
+            assertTrue(content.getJSONObject(1).getString("text").contains("Use definitions from chapter four."))
+            assertEquals("Page 1 of 1", content.getJSONObject(2).getString("text"))
+            assertEquals("image_url", content.getJSONObject(3).getString("type"))
+        } finally { page.delete() }
+    }
+
     @Test fun onlyOffersImageCapableModels() = runBlocking {
         server.enqueue(MockResponse().setBody("""{"data":[
             {"id":"text-only","name":"Text","architecture":{"input_modalities":["text"]}},

@@ -1,5 +1,6 @@
 import {prompt,rewrite,parseSolution,needsRewrite,speechText} from './core.js';
 const base='https://openrouter.ai/api/v1/';
+export const contextNote=s=>s.context?.trim()?`Additional context from the user (use for solving, do not read this note aloud):\n${s.context.trim().slice(0,8000)}`:'';
 export async function remote(path,key,body,signal){
  const timeout=AbortSignal.timeout(240000);
  const response=await fetch(base+path,{method:body?'POST':'GET',headers:{...(key?{Authorization:`Bearer ${key}`}:{ }),'X-Title':'SchoolHelp',...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:signal?AbortSignal.any([signal,timeout]):timeout});
@@ -11,6 +12,7 @@ export async function dataURL(blob){return new Promise((resolve,reject)=>{const 
 export async function solveRemote(photos,s,key,signal){
  if(!key||!s.visionModel)throw Error('Open Settings and save your API key and vision model.');
  const content=[{type:'text',text:'Read all pages together, in order. Join questions continued across pages and answer each once.'}];
+ if(contextNote(s))content.push({type:'text',text:contextNote(s)});
  for(const [index,photo] of photos.entries()){content.push({type:'text',text:`Page ${index+1} of ${photos.length}`},{type:'image_url',image_url:{url:await dataURL(photo.blob)}})}
  const messages=[{role:'system',content:prompt(s)},{role:'user',content}];
  const complete=async()=>{const data=await(await remote('chat/completions',key,{model:s.visionModel,messages,temperature:0.2},signal)).json();const result=data.choices?.[0]?.message?.content;if(typeof result!=='string')throw Error('The model returned no answer.');return result};
@@ -40,5 +42,5 @@ export function local(type,values,progress){
  if(!worker){worker=new Worker(new URL('./local-worker.js',import.meta.url),{type:'module'});worker.onmessage=({data})=>{const item=requests.get(data.id);if(!item)return;if(data.progress)item.progress(data.progress);else{requests.delete(data.id);data.error?item.reject(Error(data.error)):item.resolve(data.result)}};worker.onerror=event=>{for(const item of requests.values())item.reject(Error(event.message||'Local model failed.'));requests.clear();worker?.terminate();worker=null}}
  const id=++sequence;return new Promise((resolve,reject)=>{requests.set(id,{resolve,reject,progress});worker.postMessage({id,type,...values})});
 }
-export async function solveLocal(photos,s,progress){const text=await local('solve',{images:await Promise.all(photos.map(p=>dataURL(p.blob))),prompt:prompt(s)},progress);let solution;try{solution=parseSolution(text)}catch{throw Error('The small local vision model could not structure these questions. Try a closer photo or explicitly select an OpenRouter vision model.')}if(needsRewrite(solution))throw Error('Local model returned visual notation. Retry or explicitly select OpenRouter.');return solution}
+export async function solveLocal(photos,s,progress){const text=await local('solve',{images:await Promise.all(photos.map(p=>dataURL(p.blob))),prompt:[prompt(s),contextNote(s)].filter(Boolean).join('\n\n')},progress);let solution;try{solution=parseSolution(text)}catch{throw Error('The small local vision model could not structure these questions. Try a closer photo or explicitly select an OpenRouter vision model.')}if(needsRewrite(solution))throw Error('Local model returned visual notation. Retry or explicitly select OpenRouter.');return solution}
 export async function speechLocal(solution,s,progress){const result=await local('speech',{text:speechText(solution,s),language:s.language,voice:s.localVoice},progress);if(result.blob)return result.blob;const pcm=Int16Array.from(result.audio,v=>Math.max(-32768,Math.min(32767,Math.round(v*32767))));return pcmWave(pcm,result.rate)}

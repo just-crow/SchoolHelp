@@ -141,6 +141,13 @@ private fun HomeScreen(state: UiState, model: AppViewModel) {
         label = { Text("Answer and speech language") }, placeholder = { Text("Enter a language") },
         supportingText = { Text("All answers and spoken labels use this language. No automatic detection. Changes apply when you solve again.") },
         singleLine = true, enabled = state.busy == null, modifier = Modifier.fillMaxWidth())
+    OutlinedTextField(value = state.settings.context,
+        onValueChange = { model.settings(state.settings.copy(context = it.take(8000))) },
+        label = { Text("Context for the AI (optional)") },
+        placeholder = { Text("Add background, definitions, or instructions for these questions…") },
+        supportingText = { Text("Used with your photos when solving. Saved until you clear it. Not read aloud as a separate note.") },
+        minLines = 3, maxLines = 8, enabled = state.busy == null, modifier = Modifier.fillMaxWidth())
+    if (state.settings.context.isNotEmpty()) TextButton(onClick = { model.settings(state.settings.copy(context = "")) }, enabled = state.busy == null) { Text("Clear context") }
     if (image == null) {
         Surface(shape = RoundedCornerShape(24.dp), color = Sage, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
