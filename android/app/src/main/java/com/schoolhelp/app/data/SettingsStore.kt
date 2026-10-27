@@ -38,7 +38,7 @@ class SettingsStore(context: Context) {
         outputLanguage = prefs.getString("outputLanguage", if (prefs.getString("language", "en") == "pl") "Polish" else "English")!!,
         explanations = prefs.getBoolean("explanations", true),
         modelId = prefs.getString("modelId", "")!!,
-        rate = prefs.getFloat("rate", 1f).coerceIn(.7f, 1.4f),
+        rate = prefs.getFloat("rate", 1f).coerceIn(com.schoolhelp.app.core.SpeechSpeed.MIN, com.schoolhelp.app.core.SpeechSpeed.MAX),
         tapGapMs = prefs.getLong("tapGap", 300).coerceIn(150L, 700L),
         readySound = prefs.getBoolean("readySound", true),
         speechProvider = runCatching { AiProvider.valueOf(prefs.getString("speechProvider", "LOCAL")!!) }.getOrDefault(AiProvider.LOCAL),

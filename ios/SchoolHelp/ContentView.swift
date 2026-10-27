@@ -108,7 +108,7 @@ struct ContentView:View {
                     Button("Use provider default voice"){model.settings.speechVoice=""}
                 } else if voices.isEmpty {TextField("Speech voice",text:$model.settings.speechVoice)}
                 else {Picker("Speech voice",selection:$model.settings.speechVoice){Text("Choose voice").tag("");ForEach(voices,id:\.self){Text($0).tag($0)}}}
-                HStack {Text("Playback speed");Slider(value:Binding(get:{Double(model.settings.speed)},set:{model.settings.speed=Float($0)}),in:0.5...2,step:0.1)}
+                HStack {Text("Playback speed \(String(format:"%.2f",model.settings.speed))×");Slider(value:Binding(get:{Double(model.settings.speed)},set:{model.settings.speed=Float($0)}),in:0.25...2,step:0.05)}
                 Toggle("Ready sound",isOn:$model.settings.readySound)
                 Button("Download offline vision model (2 GB)"){model.downloadVision()}
                 Button("Import unpacked offline voice folder"){folderPicker=true}

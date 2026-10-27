@@ -43,3 +43,7 @@ Home now has a multiline Context for the AI field before photo capture/import. S
 ## One generation button in 1.1.6
 
 The existing Solve & prepare speech button is now always displayed, enabled when there are photos, nonblank context, or both (unless already processing). No second generation button was added. Context-only is a text task for the selected answer model and then uses the same speech, listening, persistence and sharing pipeline. Empty requests are rejected before network calls. Photo requests still combine the context and all ordered pages. Local engines use their existing downloaded multimodal model for text-only inference; browser offline quality remains experimental.
+
+## Slower speech in 1.1.7
+
+Minimum speed is now 0.25×, with 0.05 slider increments. Android persists the lower setting instead of clamping it to 0.7×. OpenRouter recordings use the selected playback speed directly. For Android offline speech below 0.7×, synthesis stays at 0.7× and playback applies only the remaining slowdown, avoiding double slowdown and unusually slow synthesis. Shared recordings preserve this playback multiplier. Browser and iOS playback also accept 0.25×. Android speed changes retain their existing behavior of applying to the next prepared recording. The website also adjusts its loaded audio immediately when the slider moves.

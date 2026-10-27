@@ -104,8 +104,8 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
         SettingSwitch("Include reasoning", "Add brief justification or working, as you would on a test.", settings.explanations) {
             model.settings(settings.copy(explanations = it))
         }
-        Text("Speaking speed · ${"%.1f".format(settings.rate)}×", style = MaterialTheme.typography.titleMedium)
-        Slider(settings.rate, onValueChange = { model.settings(settings.copy(rate = it)) }, valueRange = .7f..1.4f, steps = 6,
+        Text("Speaking speed · ${"%.2f".format(settings.rate)}×", style = MaterialTheme.typography.titleMedium)
+        Slider(settings.rate, onValueChange = { model.settings(settings.copy(rate = it)) }, valueRange = com.schoolhelp.app.core.SpeechSpeed.MIN..com.schoolhelp.app.core.SpeechSpeed.MAX, steps = 22,
             modifier = Modifier.fillMaxWidth())
         Text("Voice and explanation changes apply to the next generated recording.", style = MaterialTheme.typography.bodySmall, color = Muted)
     }

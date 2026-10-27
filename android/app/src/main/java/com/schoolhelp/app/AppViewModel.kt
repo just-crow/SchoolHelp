@@ -336,9 +336,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 output = File(sessions.directory, "answer-${java.util.UUID.randomUUID()}.${if (cloudSpeech) "mp3" else "wav"}")
                 val spokenText = solution.speech(config.explanations, config.language)
                 if (cloudSpeech) output = remoteSpeech.generate(spokenText, preferences.apiKey(), config, output)
-                else speech.generate(spokenText, config.language, config.rate, output)
+                else speech.generate(spokenText, config.language, com.schoolhelp.app.core.SpeechSpeed.generation(config.rate), output)
                 state.value.recording?.delete()
-                val playbackSpeed = if (cloudSpeech) config.rate else 1f
+                val playbackSpeed = com.schoolhelp.app.core.SpeechSpeed.playback(config.rate, cloudSpeech)
                 try { sharing.snapshot(solution, output, playbackSpeed, config.language, spokenText) }
                 catch (e: CancellationException) { throw e }
                 catch (e: Exception) { mutable.update { it.copy(notice="Answers are ready, but sharing could not be queued: ${e.message}") } }
