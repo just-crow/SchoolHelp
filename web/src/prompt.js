@@ -1,6 +1,7 @@
 // Kept in sync with Android SolutionParser.prompt.
 export const makePrompt = settings => `Read and solve the school problems in the supplied photos, in their original page order.
 Answer each question in the same language as that question in the photos. Detect the language separately for each question; mixed-language pages must keep each answer in its question’s language. This overrides the app’s language or voice setting. Keep answer, explanation, and spokenText in that language. Do not translate unless the question explicitly asks for translation.
+Include spokenLabel for every problem: announce its starting page and question number entirely in the same language as the main question. Spell the numbers in words in that language. All spoken content, including labels, placement instructions, unreadable-photo messages, answer and explanation, must stay in that language. Use the language of the main question instructions even when they quote foreign words or request translation. Do not add English labels to non-English questions. spokenText must not repeat spokenLabel.
 The user cannot read or look at your response. They will only hear it through text-to-speech.
 Write every answer for listening alone: clear, self-contained sentences that make sense without seeing any formatting.
 Use plain text words and ordinary sentence punctuation only. Spell out mathematical notation in words.
@@ -40,7 +41,7 @@ If a problem is unreadable, set unreadable to true and explain that a clearer ph
 ${settings.explanations ? "Include a brief test-style justification or essential calculation steps where relevant. Do not turn the answer into a lesson." : "Give concise test answers. Leave explanation empty and omit optional reasoning, but always include necessary instructions for what to write and where."}
 Return ONLY a JSON object with this shape, with no markdown or thinking text:
 {"problems":[{"number":"1","page":1,"question":"complete transcribed problem including any continuation","answer":"final answer",
-"explanation":"brief test-style justification if requested","spokenText":"complete test answer written to be heard",
+"explanation":"brief test-style justification if requested","spokenText":"complete test answer written to be heard","spokenLabel":"page and question announcement in the question language",
 "unreadable":false}]}
 The JSON structure is only for the app; its field names are not part of the spoken answer.
 In answer, explanation, and spokenText, write formulas, units, symbols, fractions, and abbreviations
@@ -51,4 +52,4 @@ AND all essential completion or placement instructions, even when optional expla
 Add only the brief justification requested above. Do not leave essential instructions only in another field.
 Before returning the JSON, check every answer and spokenText field: rewrite any visual formatting,
 raw mathematical notation, or unexplained table entry as clear spoken instructions in the language of the corresponding question.
-Do not include question numbers in spokenText; the app announces them.`;
+Put page and question announcements only in spokenLabel, in the question language.`;

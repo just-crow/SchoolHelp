@@ -222,7 +222,7 @@ class SharingRepository(private val context: Context) {
         private val JSON = "application/json".toMediaType()
         fun solutionJson(solution: Solution) = JSONObject().put("problems",JSONArray(solution.problems.map {
             JSONObject().put("number",it.number).put("question",it.question).put("answer",it.answer).put("explanation",it.explanation)
-                .put("spokenText",it.spokenText).put("unreadable",it.unreadable).put("page",it.page)
+                .put("spokenLabel",it.spokenLabel).put("spokenText",it.spokenText).put("unreadable",it.unreadable).put("page",it.page)
         }))
         fun checksum(file: File): String { val digest=MessageDigest.getInstance("SHA-256"); file.inputStream().use { input -> val buffer=ByteArray(8192); while(true) { val n=input.read(buffer); if(n<0) break; digest.update(buffer,0,n) } }; return digest.digest().joinToString("") { "%02x".format(it) } }
     }

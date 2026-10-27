@@ -8,8 +8,12 @@ import XCTest
             Problem(number:"2",question:"",answer:"present",explanation:"",spokenText:"In the Plant cell row, under Cell wall, write Present.",unreadable:false,page:2)
         ])
         XCTAssertFalse(ListeningText.needsRewrite(answer))
-        XCTAssertTrue(answer.speech(language:"en",explanations:false).hasPrefix("Page 1. Question 1."))
-        XCTAssertTrue(answer.speech(language:"en",explanations:false).contains("Page 2. Question 2."))
+        XCTAssertTrue(answer.speech(language:"en",explanations:false).hasPrefix("1."))
+        XCTAssertTrue(answer.speech(language:"en",explanations:false).contains("2. In the Plant cell"))
+    }
+    func testLocalizedLabelOverridesAppLanguage() throws {
+        let answer=try ListeningText.parse(#"{"problems":[{"number":"1","question":"Co to jest komórka?","answer":"Komórka.","explanation":"","spokenText":"Komórka jest podstawową jednostką życia.","spokenLabel":"Strona pierwsza. Zadanie pierwsze.","unreadable":false,"page":1}]}"#)
+        XCTAssertEqual(answer.speech(language:"en",explanations:false),"Strona pierwsza. Zadanie pierwsze. Komórka jest podstawową jednostką życia.")
     }
     func testVisualFractionNeedsRewrite() {
         let answer=Solution(problems:[Problem(number:"1",question:"",answer:"x",explanation:"",spokenText:"1/2",unreadable:false,page:1)])

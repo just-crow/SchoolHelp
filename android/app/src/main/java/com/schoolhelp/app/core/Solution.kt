@@ -10,22 +10,22 @@ data class Problem(
     val spokenText: String,
     val unreadable: Boolean = false,
     val page: Int? = null,
+    val spokenLabel: String = "",
 )
 
 data class Solution(val problems: List<Problem>) {
     fun speech(includeExplanations: Boolean, language: String): String = problems.joinToString("\n\n") {
-        val page = it.page?.let { number -> if (language == "pl") "Strona $number. " else "Page $number. " }.orEmpty()
-        val label = page + if (language == "pl") "Zadanie" else "Question"
-        if (it.unreadable) "$label ${it.number}. ${SpeechText.clean(it.answer, language)}"
-        else if (it.spokenText.isNotBlank()) "$label ${it.number}. ${SpeechText.clean(it.spokenText, language)}"
-        else "$label ${it.number}. ${SpeechText.clean(it.answer, language)}" +
+        val label = it.spokenLabel.trim().trimEnd('.', ' ').ifBlank { it.number }
+        if (it.unreadable) "$label. ${SpeechText.clean(it.answer, language)}"
+        else if (it.spokenText.isNotBlank()) "$label. ${SpeechText.clean(it.spokenText, language)}"
+        else "$label. ${SpeechText.clean(it.answer, language)}" +
             if (includeExplanations) " ${SpeechText.clean(it.explanation, language)}" else ""
     }
 }
 
 object SolutionParser {
     fun needsSpokenRewrite(solution: Solution): Boolean = solution.problems.any {
-        (!it.unreadable && it.spokenText.isBlank()) || SpeechText.hasVisualNotation(it.spokenText.ifBlank { it.answer })
+        (!it.unreadable && it.spokenText.isBlank()) || SpeechText.hasVisualNotation(it.spokenLabel) || SpeechText.hasVisualNotation(it.spokenText.ifBlank { it.answer })
     }
 
     fun requireListeningText(solution: Solution): Solution {
@@ -36,7 +36,7 @@ object SolutionParser {
     }
 
     fun rewritePrompt(language: String, explanations: Boolean) = """
-        Rewrite your previous answer into the same JSON structure. Preserve the answers, joined transcriptions, starting page numbers and their order.
+        Rewrite your previous answer into the same JSON structure. Preserve the answers, joined transcriptions, starting page numbers, spokenLabel and their order. Keep spokenLabel in the original question language.
         The spoken script still contains visual formatting or notation. The user can only listen.
         Replace ALL fractions, formulas, symbols, Markdown, and layouts with plain spoken sentences in the same language as the corresponding original question. Preserve that language during this rewrite.
         Say exactly what to write and where: fraction numerator and denominator; table row and column before each entry.
@@ -61,6 +61,7 @@ object SolutionParser {
                 answer = answer,
                 explanation = item.optString("explanation"),
                 spokenText = item.optString("spokenText"),
+                spokenLabel = item.optString("spokenLabel"),
                 unreadable = item.optBoolean("unreadable", false),
                 page = item.optInt("page", 0).takeIf { it > 0 },
             )
@@ -70,6 +71,7 @@ object SolutionParser {
     fun prompt(language: String, explanations: Boolean): String = """
         Read and solve the school problems in the supplied photos, in their original page order.
         Answer each question in the same language as that question in the photos. Detect the language separately for each question; mixed-language pages must keep each answer in its question’s language. This overrides the app’s language or voice setting. Keep answer, explanation, and spokenText in that language. Do not translate unless the question explicitly asks for translation.
+        Include spokenLabel for every problem: announce its starting page and question number entirely in the same language as the main question. Spell the numbers in words in that language. All spoken content, including labels, placement instructions, unreadable-photo messages, answer and explanation, must stay in that language. Use the language of the main question instructions even when they quote foreign words or request translation. Do not add English labels to non-English questions. spokenText must not repeat spokenLabel.
         The user cannot read or look at your response. They will only hear it through text-to-speech.
         Write every answer for listening alone: clear, self-contained sentences that make sense without seeing any formatting.
         Use plain text words and ordinary sentence punctuation only. Spell out mathematical notation in words.
@@ -109,7 +111,7 @@ object SolutionParser {
         ${if (explanations) "Include a brief test-style justification or essential calculation steps where relevant. Do not turn the answer into a lesson." else "Give concise test answers. Leave explanation empty and omit optional reasoning, but always include necessary instructions for what to write and where."}
         Return ONLY a JSON object with this shape, with no markdown or thinking text:
         {"problems":[{"number":"1","page":1,"question":"complete transcribed problem including any continuation","answer":"final answer",
-        "explanation":"brief test-style justification if requested","spokenText":"complete test answer written to be heard",
+        "explanation":"brief test-style justification if requested","spokenText":"complete test answer written to be heard","spokenLabel":"page and question announcement in the question language",
         "unreadable":false}]}
         The JSON structure is only for the app; its field names are not part of the spoken answer.
         In answer, explanation, and spokenText, write formulas, units, symbols, fractions, and abbreviations
@@ -120,7 +122,7 @@ object SolutionParser {
         Add only the brief justification requested above. Do not leave essential instructions only in another field.
         Before returning the JSON, check every answer and spokenText field: rewrite any visual formatting,
         raw mathematical notation, or unexplained table entry as clear spoken instructions in the language of the corresponding question.
-        Do not include question numbers in spokenText; the app announces them.
+        Put page and question announcements only in spokenLabel, in the question language.
     """.trimIndent()
 }
 

@@ -4,16 +4,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SolutionTest {
-    @Test fun parsedStartingPagesPreserveQuestionNumbersAndAnnouncePageInBothLanguages() {
+    @Test fun legacyAnswersKeepOrderWithoutInjectingLanguageSpecificLabels() {
         val combined = SolutionParser.parse("""{"problems":[
             {"number":"1","page":1,"answer":"A","spokenText":"First answer."},
             {"number":"1","page":2,"answer":"B","spokenText":"Second answer."}]}""")
         assertEquals(listOf(1, 2), combined.problems.map { it.page })
         assertEquals(listOf("1", "1"), combined.problems.map { it.number })
-        assertEquals("Page 1. Question 1. First answer.\n\nPage 2. Question 1. Second answer.", combined.speech(false, "en"))
-        assertTrue(combined.speech(false, "pl").contains("Strona 2. Zadanie 1."))
+        assertEquals("1. First answer.\n\n1. Second answer.", combined.speech(false, "en"))
+        assertEquals(combined.speech(false, "en"), combined.speech(false, "pl"))
         assertNull(SolutionParser.parse("""{"problems":[{"number":"1","answer":"A","spokenText":"First answer."}]}""").problems.single().page)
     }
+    @Test fun modelLocalizedAnnouncementsOverrideTheAppLanguage() {
+        val solution = SolutionParser.parse("""{"problems":[{"number":"1","page":1,"question":"Co to jest komórka?","answer":"Komórka.","spokenText":"Komórka jest podstawową jednostką życia.","spokenLabel":"Strona pierwsza. Zadanie pierwsze."}]}""")
+        assertEquals("Strona pierwsza. Zadanie pierwsze. Komórka jest podstawową jednostką życia.", solution.speech(false, "en"))
+        val spanish = solution.copy(problems = listOf(solution.problems.single().copy(spokenLabel = "Página uno. Pregunta uno.", spokenText = "Una célula.")))
+        assertEquals("Página uno. Pregunta uno. Una célula.", spanish.speech(false, "pl"))
+    }
+
     private val json = """{"problems":[{"number":"7","question":"2 + 2","answer":"4","explanation":"Add two and two.","spokenText":"The answer is four. Add two and two.","unreadable":false}]}"""
 
     @Test fun parsesNumberedProblemFromFencedOutput() {
@@ -29,21 +36,21 @@ class SolutionTest {
 
     @Test fun answerOnlyOmitsExplanation() {
         val concise = Solution(listOf(Problem("7", "", "4", "Add two and two.", "Four.")))
-        assertEquals("Question 7. Four.", concise.speech(false, "en"))
+        assertEquals("7. Four.", concise.speech(false, "en"))
     }
 
     @Test fun explanationsUseNaturalSpokenText() {
-        assertEquals("Question 7. The answer is four. Add two and two.", SolutionParser.parse(json).speech(true, "en"))
+        assertEquals("7. The answer is four. Add two and two.", SolutionParser.parse(json).speech(true, "en"))
     }
 
     @Test fun unreadableProblemKeepsRetakeMessage() {
         val solution = Solution(listOf(Problem("3", "", "Please retake this photo.", "", "", true)))
-        assertEquals("Question 3. Please retake this photo.", solution.speech(true, "en"))
+        assertEquals("3. Please retake this photo.", solution.speech(true, "en"))
     }
 
-    @Test fun polishQuestionLabelIsLocalized() {
+    @Test fun legacyPolishAnswerHasNoEnglishPrefix() {
         val concise = Solution(listOf(Problem("7", "", "4", "", "Cztery.")))
-        assertEquals("Zadanie 7. Cztery.", concise.speech(false, "pl"))
+        assertEquals("7. Cztery.", concise.speech(false, "pl"))
     }
 
     @Test(expected = IllegalArgumentException::class) fun rejectsTruncatedOutput() {
@@ -66,7 +73,7 @@ class SolutionTest {
 
     @Test fun tablePlacementInstructionsAreSpokenEvenWhenReasoningIsDisabled() {
         val solution = Solution(listOf(Problem("2", "Complete the table", "Present", "", "In the row Plant cell, under Cell wall, write Present.")))
-        assertEquals("Question 2. In the row Plant cell, under Cell wall, write Present.", solution.speech(false, "en"))
+        assertEquals("2. In the row Plant cell, under Cell wall, write Present.", solution.speech(false, "en"))
     }
 
     @Test fun fractionGlyphsAndSlashFractionsAreReadable() {
@@ -77,7 +84,7 @@ class SolutionTest {
 
     @Test fun spokenScriptAlsoReceivesNotationCleanup() {
         val solution = Solution(listOf(Problem("1", "", "ignored", "", "**½**")))
-        assertEquals("Question 1. one half", solution.speech(false, "en"))
+        assertEquals("1. one half", solution.speech(false, "en"))
     }
 
     @Test fun nestedFractionsKeepNumeratorAndDenominatorGrouping() {
