@@ -15,6 +15,15 @@ import XCTest
         let answer=try ListeningText.parse(#"{"problems":[{"number":"1","question":"Co to jest komórka?","answer":"Komórka.","explanation":"","spokenText":"Komórka jest podstawową jednostką życia.","spokenLabel":"Strona pierwsza. Zadanie pierwsze.","unreadable":false,"page":1}]}"#)
         XCTAssertEqual(answer.speech(language:"en",explanations:false),"Strona pierwsza. Zadanie pierwsze. Komórka jest podstawową jednostką życia.")
     }
+    func testTypedLanguageIsUsedAndSaved() throws {
+        var settings=AISettings()
+        settings.outputLanguage="French"
+        let restored=try JSONDecoder().decode(AISettings.self,from:JSONEncoder().encode(settings))
+        XCTAssertEqual(restored.requestedLanguage,"French")
+        let prompt=ListeningText.prompt(language:restored.requestedLanguage,explanations:false)
+        XCTAssertTrue(prompt.contains("chosen the output language: French"))
+        XCTAssertTrue(prompt.contains("Do not detect or choose an output language from the photos"))
+    }
     func testVisualFractionNeedsRewrite() {
         let answer=Solution(problems:[Problem(number:"1",question:"",answer:"x",explanation:"",spokenText:"1/2",unreadable:false,page:1)])
         XCTAssertTrue(ListeningText.needsRewrite(answer))

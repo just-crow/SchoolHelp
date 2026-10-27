@@ -44,6 +44,9 @@ struct ContentView:View {
                 VStack(alignment:.leading,spacing:20) {
                     Text("SchoolHelp").font(.largeTitle.bold())
                     Text("Photograph your questions. Listen to the answers.").foregroundStyle(.secondary)
+                    TextField("Answer and speech language",text:Binding(get:{model.settings.requestedLanguage},set:{model.settings.outputLanguage=String($0.prefix(60));model.saveSettings()}))
+                        .textFieldStyle(.roundedBorder).disabled(!model.busy.isEmpty)
+                    Text("All answers and spoken labels use this language. No automatic detection. Solve again to apply changes.").font(.caption).foregroundStyle(.secondary)
                     if model.interrupted {Button("Continue speech from saved answer"){model.retrySpeech()};Button("Retry solving pages"){model.solve()}}
                     if !model.busy.isEmpty {ProgressView(model.busy);Button("Cancel"){model.cancelWork()}}
                     PhotosPicker(selection:$picked,maxSelectionCount:max(1,10-model.photos.count),matching:.images){Label("Add photos",systemImage:"photo.on.rectangle")}
@@ -83,7 +86,7 @@ struct ContentView:View {
     private var settingsView:some View {
         NavigationStack {
             Form {
-                Picker("Language",selection:$model.settings.language){Text("English").tag("en");Text("Polski").tag("pl")}
+                Picker("Offline voice language",selection:$model.settings.language){Text("English").tag("en");Text("Polski").tag("pl")}
                 Toggle("Include brief reasoning",isOn:$model.settings.explanations)
                 Picker("Answer engine",selection:$model.settings.answerProvider){Text("On this iPhone").tag("local");Text("OpenRouter").tag("openrouter")}
                 Picker("Speech engine",selection:$model.settings.speechProvider){Text("Offline voice").tag("local");Text("OpenRouter speech").tag("openrouter")}

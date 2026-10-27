@@ -1,7 +1,7 @@
 import {makePrompt} from './prompt.js';
 export const prompt=makePrompt;
-export const defaults={answerProvider:'openrouter',speechProvider:'local',visionModel:'',speechModel:'',speechVoice:'',localVoice:'af_heart',language:'en',explanations:false,speed:1,readySound:true,tapGap:300};
-export const rewrite='Rewrite the previous JSON. Preserve answers, order, page numbers and spokenLabel. All spoken labels and instructions must remain in the main question language. Replace all visual notation, symbols, fractions and formatting in spokenText with plain spoken words and exact placement instructions. Return only JSON.';
+export const defaults={answerProvider:'openrouter',speechProvider:'local',visionModel:'',speechModel:'',speechVoice:'',localVoice:'af_heart',language:'en',outputLanguage:'English',explanations:false,speed:1,readySound:true,tapGap:300};
+export const rewrite='Rewrite the previous JSON. Preserve answers, order, page numbers and spokenLabel. All spoken labels and instructions must remain in the user-selected output language. Do not detect a language from the question. Replace all visual notation, symbols, fractions and formatting in spokenText with plain spoken words and exact placement instructions. Return only JSON.';
 export function parseSolution(text){
  text=text.replace(/<think>[\s\S]*?<\/think>/g,'');
  const start=text.indexOf('{'),end=text.lastIndexOf('}');

@@ -21,6 +21,16 @@ class SolutionTest {
         assertEquals("Página uno. Pregunta uno. Una célula.", spanish.speech(false, "pl"))
     }
 
+    @Test fun typedLanguageOverridesPhotoLanguageInSolveAndRepairInstructions() {
+        for (language in listOf("French", "Spanish", "Japanese", "Brazilian Portuguese")) {
+            val prompt = SolutionParser.prompt(language, true)
+            assertTrue(prompt.contains("chosen the output language: $language"))
+            assertTrue(prompt.contains("Do not detect or choose an output language from the photos"))
+            assertFalse(prompt.contains("Detect the language separately"))
+            assertTrue(SolutionParser.rewritePrompt(language, true).contains("output language: $language"))
+        }
+    }
+
     private val json = """{"problems":[{"number":"7","question":"2 + 2","answer":"4","explanation":"Add two and two.","spokenText":"The answer is four. Add two and two.","unreadable":false}]}"""
 
     @Test fun parsesNumberedProblemFromFencedOutput() {

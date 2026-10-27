@@ -8,6 +8,8 @@ struct RemoteModel: Identifiable {let id:String;let name:String;let voices:[Stri
 
 struct AISettings: Codable {
     var language="en"
+    var outputLanguage:String? = nil
+    var requestedLanguage:String {outputLanguage ?? (language == "pl" ? "Polish":"English")}
     var explanations=false
     var answerProvider="local"
     var speechProvider="local"
@@ -55,7 +57,7 @@ final class OpenRouter {
             content.append(["type":"text","text":"Page \(index+1) of \(images.count)"])
             content.append(["type":"image_url","image_url":["url":"data:image/jpeg;base64,\(data.base64EncodedString())"]])
         }
-        var messages:[[String:Any]]=[["role":"system","content":ListeningText.prompt(language:settings.language,explanations:settings.explanations)], ["role":"user","content":content]]
+        var messages:[[String:Any]]=[["role":"system","content":ListeningText.prompt(language:settings.requestedLanguage,explanations:settings.explanations)], ["role":"user","content":content]]
         func complete(_ messages:[[String:Any]]) async throws->String {
             let (data,_)=try await call("chat/completions",key:key,body:["model":settings.visionModel,"messages":messages,"temperature":0.2])
             let obj=try JSONSerialization.jsonObject(with:data) as? [String:Any] ?? [:]
@@ -122,7 +124,7 @@ enum LocalAI {
         let engine=Engine(engineConfig:config)
         try await engine.initialize()
         let conversation=try await engine.createConversation()
-        var contents:[Content]=[.text(ListeningText.prompt(language:settings.language,explanations:settings.explanations))]
+        var contents:[Content]=[.text(ListeningText.prompt(language:settings.requestedLanguage,explanations:settings.explanations))]
         for (index,url) in images.enumerated(){contents.append(.text("Page \(index+1) of \(images.count)"));contents.append(.imageFile(url.path))}
         let first=try await conversation.sendMessage(Message(contents:contents),extraContext:["enable_thinking":false]).toString
         var solution=try ListeningText.parse(first)

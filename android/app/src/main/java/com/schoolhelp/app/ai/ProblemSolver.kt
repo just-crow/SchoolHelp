@@ -46,7 +46,7 @@ class LocalProblemSolver {
             currentCoroutineContext().ensureActive()
             engine.createConversation(ConversationConfig()).use { conversation ->
                 val result = StringBuilder()
-                val content = mutableListOf<Content>(Content.Text(SolutionParser.prompt(settings.language, settings.explanations)))
+                val content = mutableListOf<Content>(Content.Text(SolutionParser.prompt(settings.outputLanguage, settings.explanations)))
                 images.forEachIndexed { index, image ->
                     content += Content.Text("Page ${index + 1} of ${images.size}")
                     content += Content.ImageFile(image.absolutePath)
@@ -55,7 +55,7 @@ class LocalProblemSolver {
                 var solution = SolutionParser.parse(result.toString())
                 if (SolutionParser.needsSpokenRewrite(solution)) {
                     result.clear()
-                    conversation.sendMessageAsync(Contents.of(Content.Text(SolutionParser.rewritePrompt(settings.language, settings.explanations))),
+                    conversation.sendMessageAsync(Contents.of(Content.Text(SolutionParser.rewritePrompt(settings.outputLanguage, settings.explanations))),
                         extraContext = mapOf("enable_thinking" to false)).collect { result.append(it.toString()) }
                     solution = SolutionParser.parse(result.toString())
                 }
@@ -114,7 +114,7 @@ class OpenRouterSolver(
         }
         val body = JSONObject().put("model", settings.modelId)
             .put("messages", JSONArray()
-                .put(JSONObject().put("role", "system").put("content", SolutionParser.prompt(settings.language, settings.explanations)))
+                .put(JSONObject().put("role", "system").put("content", SolutionParser.prompt(settings.outputLanguage, settings.explanations)))
                 .put(JSONObject().put("role", "user").put("content", content)))
             .put("temperature", 0.2)
         suspend fun complete(): String {
@@ -132,7 +132,7 @@ class OpenRouterSolver(
         var solution = SolutionParser.parse(raw)
         if (SolutionParser.needsSpokenRewrite(solution)) {
             body.getJSONArray("messages").put(JSONObject().put("role", "assistant").put("content", raw))
-                .put(JSONObject().put("role", "user").put("content", SolutionParser.rewritePrompt(settings.language, settings.explanations)))
+                .put(JSONObject().put("role", "user").put("content", SolutionParser.rewritePrompt(settings.outputLanguage, settings.explanations)))
             solution = SolutionParser.parse(complete())
         }
         SolutionParser.requireListeningText(solution)

@@ -2,16 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makePrompt } from '../src/prompt.js';
 
-test('question language overrides app language for every question', () => {
-  for (const language of ['en', 'pl']) {
-    const prompt = makePrompt({ language, explanations: true });
-    assert.ok(prompt.includes('same language as that question'));
-    assert.ok(prompt.includes('mixed-language pages'));
-    assert.ok(prompt.includes('overrides the app'));
-    assert.ok(prompt.includes('Include spokenLabel for every problem'));
-    assert.ok(!prompt.includes('Answer in English.'));
-    assert.ok(!prompt.includes('Answer in Polish.'));
+test('typed output language controls all speech instead of detecting the photo language', () => {
+  for (const outputLanguage of ['French','Spanish','Japanese','Brazilian Portuguese']) {
+    const prompt=makePrompt({language:'en',outputLanguage,explanations:true});
+    assert.ok(prompt.includes(JSON.stringify(outputLanguage)));
+    assert.ok(prompt.includes('Do not detect or choose an output language from the photos'));
+    assert.ok(prompt.includes('every answer, explanation, spokenText and spokenLabel'));
+    assert.ok(!prompt.includes('Detect the language separately'));
   }
+  assert.throws(()=>makePrompt({outputLanguage:'   '}),/Enter an answer language/);
 });
 
 import {parseSolution,speechText} from '../src/core.js';

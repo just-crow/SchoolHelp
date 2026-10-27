@@ -95,6 +95,8 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
         }
     }
     SettingsSection("Voice & answers") {
+        Text("Offline voice language", style = MaterialTheme.typography.titleMedium)
+        Text("For other languages, select a compatible OpenRouter voice. Set your answer language on the home screen.", style = MaterialTheme.typography.bodySmall, color = Muted)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             FilterChip(selected = settings.language == "en", onClick = { model.settings(settings.copy(language = "en")) }, label = { Text("English") })
             FilterChip(selected = settings.language == "pl", onClick = { model.settings(settings.copy(language = "pl")) }, label = { Text("Polski") })

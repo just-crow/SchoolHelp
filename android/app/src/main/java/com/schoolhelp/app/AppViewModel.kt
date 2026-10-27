@@ -299,6 +299,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (photos.isEmpty()) return
         val cachedSolution = if(reuseSolution) snapshot.solution else null
         val config = snapshot.settings
+        if (config.outputLanguage.isBlank()) { error("Enter an answer language before solving."); return }
         if (snapshot.downloading != null) { error("Wait for the model download to finish first."); return }
         if (config.speechProvider == AiProvider.LOCAL && !models.installed(ModelCatalog.voice(config.language))) {
             error("Download the ${ModelCatalog.voice(config.language).title} voice in settings first."); return

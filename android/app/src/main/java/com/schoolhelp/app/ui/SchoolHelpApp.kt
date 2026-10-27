@@ -136,6 +136,11 @@ private fun HomeScreen(state: UiState, model: AppViewModel) {
         Text("Photograph a problem. Hear the answer,\none step at a time.", color = Muted, style = MaterialTheme.typography.bodyLarge)
     }
     ProviderPill(state)
+    OutlinedTextField(value = state.settings.outputLanguage,
+        onValueChange = { model.settings(state.settings.copy(outputLanguage = it.take(60))) },
+        label = { Text("Answer and speech language") }, placeholder = { Text("Enter a language") },
+        supportingText = { Text("All answers and spoken labels use this language. No automatic detection. Changes apply when you solve again.") },
+        singleLine = true, enabled = state.busy == null, modifier = Modifier.fillMaxWidth())
     if (image == null) {
         Surface(shape = RoundedCornerShape(24.dp), color = Sage, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
