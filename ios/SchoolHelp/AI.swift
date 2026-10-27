@@ -10,6 +10,8 @@ struct AISettings: Codable {
     var language="en"
     var outputLanguage:String? = nil
     var context:String? = nil
+    var writingPauses:Bool? = nil
+    var writingWpm:Int? = nil
     var contextNote:String {let text=(context ?? "").trimmingCharacters(in:.whitespacesAndNewlines);return text.isEmpty ? "":"Additional context from the user (use for solving, do not read this note aloud):\n" + String(text.prefix(8000))}
     var requestedLanguage:String {outputLanguage ?? (language == "pl" ? "Polish":"English")}
     var explanations=false
@@ -60,7 +62,7 @@ final class OpenRouter {
             content.append(["type":"text","text":"Page \(index+1) of \(images.count)"])
             content.append(["type":"image_url","image_url":["url":"data:image/jpeg;base64,\(data.base64EncodedString())"]])
         }
-        var messages:[[String:Any]]=[["role":"system","content":ListeningText.prompt(language:settings.requestedLanguage,explanations:settings.explanations)], ["role":"user","content":content]]
+        var messages:[[String:Any]]=[["role":"system","content":ListeningText.prompt(language:settings.requestedLanguage,explanations:settings.explanations,writingWpm:settings.writingPauses == true ? (settings.writingWpm ?? 30):0)], ["role":"user","content":content]]
         func complete(_ messages:[[String:Any]]) async throws->String {
             let (data,_)=try await call("chat/completions",key:key,body:["model":settings.visionModel,"messages":messages,"temperature":0.2])
             let obj=try JSONSerialization.jsonObject(with:data) as? [String:Any] ?? [:]
@@ -109,6 +111,27 @@ enum WAV {
 }
 
 enum AudioEncoding {
+    static func combine(_ clips:[(URL,Double)],_ speed:Float,_ output:URL) async throws {
+        let composition=AVMutableComposition()
+        guard let track=composition.addMutableTrack(withMediaType:.audio,preferredTrackID:kCMPersistentTrackID_Invalid) else{throw AppError.message("Audio assembly unavailable")}
+        var cursor=CMTime.zero
+        for (url,pause) in clips {
+            try Task.checkCancellation()
+            let asset=AVURLAsset(url:url)
+            guard let source=try await asset.loadTracks(withMediaType:.audio).first else{throw AppError.message("A speech clip has no audio")}
+            let duration=try await asset.load(.duration)
+            try track.insertTimeRange(CMTimeRange(start:.zero,duration:duration),of:source,at:cursor)
+            cursor=CMTimeAdd(cursor,duration)
+            if pause>0 {let gap=CMTime(seconds:pause*Double(speed),preferredTimescale:24000);track.insertEmptyTimeRange(CMTimeRange(start:cursor,duration:gap));cursor=CMTimeAdd(cursor,gap)}
+        }
+        try? FileManager.default.removeItem(at:output)
+        guard let session=AVAssetExportSession(asset:composition,presetName:AVAssetExportPresetAppleM4A) else{throw AppError.message("Audio assembly unavailable")}
+        session.outputURL=output;session.outputFileType=.m4a
+        await withCheckedContinuation { continuation in session.exportAsynchronously { continuation.resume() } }
+        try Task.checkCancellation()
+        guard session.status == .completed else{throw session.error ?? AppError.message("Could not add writing pauses")}
+    }
+
     static func toM4A(_ input:URL,_ output:URL) async throws {
         try? FileManager.default.removeItem(at:output)
         let session=AVAssetExportSession(asset:AVURLAsset(url:input),presetName:AVAssetExportPresetAppleM4A)
@@ -127,7 +150,7 @@ enum LocalAI {
         let engine=Engine(engineConfig:config)
         try await engine.initialize()
         let conversation=try await engine.createConversation()
-        var contents:[Content]=[.text(ListeningText.prompt(language:settings.requestedLanguage,explanations:settings.explanations))]
+        var contents:[Content]=[.text(ListeningText.prompt(language:settings.requestedLanguage,explanations:settings.explanations,writingWpm:settings.writingPauses == true ? (settings.writingWpm ?? 30):0))]
         if !settings.contextNote.isEmpty {contents.append(.text(settings.contextNote))}
         for (index,url) in images.enumerated(){contents.append(.text("Page \(index+1) of \(images.count)"));contents.append(.imageFile(url.path))}
         let first=try await conversation.sendMessage(Message(contents:contents),extraContext:["enable_thinking":false]).toString

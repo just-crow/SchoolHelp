@@ -104,6 +104,16 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
         SettingSwitch("Include reasoning", "Add brief justification or working, as you would on a test.", settings.explanations) {
             model.settings(settings.copy(explanations = it))
         }
+        SettingSwitch("Writing pauses", "Leave silent time to write. Context can override timing or request pauses after each step.", settings.writingPauses) {
+            model.settings(settings.copy(writingPauses = it))
+        }
+        if (settings.writingPauses) {
+            var wpmText by remember { mutableStateOf(settings.writingWpm.toString()) }
+            OutlinedTextField(wpmText, { value -> wpmText = value.filter { it.isDigit() }.take(3); wpmText.toIntOrNull()?.takeIf { it in 1..300 }?.let { model.settings(settings.copy(writingWpm = it)) } },
+                label = { Text("Writing speed (words per minute)") }, singleLine = true,
+                isError = wpmText.toIntOrNull()?.let { it !in 1..300 } ?: true,
+                supportingText = { Text("1–300 words/minute. Up to 10 minutes per pause. Preparing speech in parts can take longer. Applies to new recordings.") }, modifier = Modifier.fillMaxWidth())
+        }
         Text("Speaking speed · ${"%.2f".format(settings.rate)}×", style = MaterialTheme.typography.titleMedium)
         Slider(settings.rate, onValueChange = { model.settings(settings.copy(rate = it)) }, valueRange = com.schoolhelp.app.core.SpeechSpeed.MIN..com.schoolhelp.app.core.SpeechSpeed.MAX, steps = 22,
             modifier = Modifier.fillMaxWidth())

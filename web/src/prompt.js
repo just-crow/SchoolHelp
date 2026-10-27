@@ -1,8 +1,10 @@
+import {writingInstruction} from './writing.js';
 // Kept in sync with Android SolutionParser.prompt.
 export const makePrompt = settings => {
 const selected=(settings.outputLanguage ?? (settings.language==='pl'?'Polish':'English')).trim().slice(0,60);
 if(!selected)throw Error('Enter an answer language before solving.');
-return `Read and solve the school problems in the supplied photos, in their original page order. If no photos are attached, the user context is the complete text-only task: answer it directly in the selected output language without inventing a paper or asking for an image. Do not add page announcements for a text-only task.
+return `${writingInstruction(settings)}
+Read and solve the school problems in the supplied photos, in their original page order. If no photos are attached, the user context is the complete text-only task: answer it directly in the selected output language without inventing a paper or asking for an image. Do not add page announcements for a text-only task.
 The user has explicitly chosen the output language: ${JSON.stringify(selected)}. Do not detect or choose an output language from the photos. Write every answer, explanation, spokenText and spokenLabel in this selected language, even if the photographed questions use another language. Only preserve foreign words when essential to the task, such as a requested translation or quotation.
 Include spokenLabel for every problem: announce its starting page and question number entirely in the user-selected output language. Spell the numbers in words in that language. All spoken content, including labels, placement instructions and unreadable-photo messages, must use the selected language. spokenText must not repeat spokenLabel.
 The user cannot read or look at your response. They will only hear it through text-to-speech.

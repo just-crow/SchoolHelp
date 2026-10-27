@@ -1,6 +1,15 @@
-<!doctype html><html><head><base href="/"><title>SchoolHelp browser verification</title></head><body><h1>SchoolHelp browser verification</h1><button id="audio">Verify AAC export</button><button id="seed">Load listening fixture</button><pre id="result"></pre><a href="/">Open application</a><script type="module">
-import {m4a,pcmWave} from '/src/ai.js';import {put} from '/src/store.js';import {defaults} from '/src/core.js';
+<!doctype html><html><head><base href="/"><title>SchoolHelp browser verification</title></head><body><h1>SchoolHelp browser verification</h1><button id="audio">Verify AAC export</button><button id="writing">Verify writing silence</button><button id="seed">Load listening fixture</button><pre id="result"></pre><a href="/">Open application</a><script type="module">
+import {m4a,pcmWave,combineWritingAudio} from '/src/ai.js';import {put} from '/src/store.js';import {defaults} from '/src/core.js';
 const output=document.querySelector('#result');let audio;
 document.querySelector('#audio').onclick=async()=>{try{output.textContent='Converting…';audio=await m4a(pcmWave(Int16Array.from({length:24000*20},(_,i)=>Math.sin(i/24000*Math.PI*2*440)*2000),24000));output.textContent=`PASS AAC export: ${audio.type}, ${audio.size} bytes`}catch(error){output.textContent='FAIL '+error.stack}};
+document.querySelector('#writing').onclick=async()=>{try{
+ output.textContent='Assembling writing pauses…';
+ const blob=pcmWave(Int16Array.from({length:12000},(_,i)=>Math.sin(i/24000*Math.PI*2*440)*10000),24000);
+ audio=await combineWritingAudio([{blob,pauseSeconds:2},{blob,pauseSeconds:2}],0.5);
+ const context=new AudioContext();const decoded=await context.decodeAudioData(await audio.arrayBuffer());const data=decoded.getChannelData(0);
+ const rms=(start,end)=>{const samples=data.slice(Math.floor(start*decoded.sampleRate),Math.floor(end*decoded.sampleRate));return Math.sqrt(samples.reduce((n,v)=>n+v*v,0)/samples.length)};
+ if(Math.abs(decoded.duration-3)>.15||rms(.75,1.25)>.001||rms(2.25,2.75)>.001||rms(.1,.4)<.05)throw Error('Silence timing or audio samples did not match');
+ output.textContent=`PASS writing silence: ${decoded.duration.toFixed(3)} seconds, two verified silent gaps including the final pause`;await context.close();
+}catch(error){output.textContent='FAIL '+error.stack}};
 document.querySelector('#seed').onclick=async()=>{try{if(!audio)throw Error('Verify AAC first');await put('session',{photos:[],selected:0,solution:{problems:[{number:'1',question:'Audio fixture',answer:'Test recording',spokenText:'Test recording',unreadable:false}]},recording:audio,position:8,stage:'',screen:'home',mode:'own'});await put('settings',defaults);output.textContent='PASS fixture saved. Open application.'}catch(error){output.textContent='FAIL '+error.message}};
 </script></body></html>

@@ -24,6 +24,15 @@ import XCTest
         XCTAssertTrue(prompt.contains("chosen the output language: French"))
         XCTAssertTrue(prompt.contains("Do not detect or choose an output language from the photos"))
     }
+    func testWritingTimeUsesCopiedWordsAndFixedOverrides() throws {
+        XCTAssertEqual(WritingPauses.seconds("one two three",30,nil),6)
+        XCTAssertEqual(WritingPauses.seconds("words",30,0),0)
+        XCTAssertEqual(WritingPauses.seconds("words",30,12.5),12.5)
+        let solution=try ListeningText.parse(#"{"problems":[{"number":"1","question":"","answer":"A B","explanation":"","spokenText":"Write A then B.","spokenLabel":"Question one.","unreadable":false,"speechSegments":[{"text":"Write A.","writingText":"A","pauseSeconds":null},{"text":"Write B.","writingText":"B","pauseSeconds":9}]}]}"#)
+        let plan=try WritingPauses.plan(solution,30,false)
+        XCTAssertEqual(plan.map{$0.text},["Question one. Write A.","Write B."])
+        XCTAssertEqual(plan.map{$0.pauseSeconds},[2,9])
+    }
     func testVisualFractionNeedsRewrite() {
         let answer=Solution(problems:[Problem(number:"1",question:"",answer:"x",explanation:"",spokenText:"1/2",unreadable:false,page:1)])
         XCTAssertTrue(ListeningText.needsRewrite(answer))

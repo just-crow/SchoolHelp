@@ -11,6 +11,7 @@ data class Problem(
     val unreadable: Boolean = false,
     val page: Int? = null,
     val spokenLabel: String = "",
+    val speechSegments: List<SpeechSegment> = emptyList(),
 )
 
 data class Solution(val problems: List<Problem>) {
@@ -25,7 +26,7 @@ data class Solution(val problems: List<Problem>) {
 
 object SolutionParser {
     fun needsSpokenRewrite(solution: Solution): Boolean = solution.problems.any {
-        (!it.unreadable && it.spokenText.isBlank()) || SpeechText.hasVisualNotation(it.spokenLabel) || SpeechText.hasVisualNotation(it.spokenText.ifBlank { it.answer })
+        (!it.unreadable && it.spokenText.isBlank()) || SpeechText.hasVisualNotation(it.spokenLabel) || it.speechSegments.any { segment -> segment.text.isBlank() || SpeechText.hasVisualNotation(segment.text) } || SpeechText.hasVisualNotation(it.spokenText.ifBlank { it.answer })
     }
 
     fun requireListeningText(solution: Solution): Solution {
@@ -36,7 +37,7 @@ object SolutionParser {
     }
 
     fun rewritePrompt(language: String, explanations: Boolean) = """
-        Rewrite your previous answer into the same JSON structure. Preserve the answers, joined transcriptions, starting page numbers, spokenLabel and their order. Keep spokenLabel in the selected output language: ${language.trim().take(60)}.
+        Rewrite your previous answer into the same JSON structure. Preserve the answers, joined transcriptions, starting page numbers, spokenLabel, speechSegments and their order. Rewrite any notation in speechSegments.text too; preserve writingText and pauseSeconds. Keep spokenLabel in the selected output language: ${language.trim().take(60)}.
         The spoken script still contains visual formatting or notation. The user can only listen.
         Replace ALL fractions, formulas, symbols, Markdown, and layouts with plain spoken sentences in the user-selected output language: ${language.trim().take(60)}. Do not detect a language or switch to the photographed question language.
         Say exactly what to write and where: fraction numerator and denominator; table row and column before each entry.
@@ -62,13 +63,21 @@ object SolutionParser {
                 explanation = item.optString("explanation"),
                 spokenText = item.optString("spokenText"),
                 spokenLabel = item.optString("spokenLabel"),
+                speechSegments = item.optJSONArray("speechSegments")?.let { segments ->
+                    require(segments.length() <= 100) { "Too many speech segments." }
+                    (0 until segments.length()).map { j ->
+                        val segment = segments.getJSONObject(j)
+                        SpeechSegment(segment.optString("text"), segment.optString("writingText"), segment.optDouble("pauseSeconds", Double.NaN).takeIf { it.isFinite() })
+                    }
+                }.orEmpty(),
                 unreadable = item.optBoolean("unreadable", false),
                 page = item.optInt("page", 0).takeIf { it > 0 },
             )
         })
     }
 
-    fun prompt(language: String, explanations: Boolean): String = """
+    fun prompt(language: String, explanations: Boolean, writingWpm: Int = 0): String = """
+        ${WritingPauses.instruction(writingWpm)}
         Read and solve the school problems in the supplied photos, in their original page order. If no photos are attached, the user context is the complete text-only task: answer it directly in the selected output language without inventing a paper or asking for an image. Do not add page announcements for a text-only task.
         The user has explicitly chosen the output language: ${language.trim().take(60)}. Do not detect or choose an output language from the photos. Write every answer, explanation, spokenText and spokenLabel in this selected language, even if the photographed questions use another language. Only preserve foreign words when essential to the task, such as a requested translation or quotation.
         Include spokenLabel for every problem: announce its starting page and question number entirely in the user-selected output language. Spell the numbers in words in that language. All spoken content, including labels, placement instructions and unreadable-photo messages, must use the selected language. spokenText must not repeat spokenLabel.

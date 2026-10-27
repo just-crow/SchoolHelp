@@ -1,17 +1,17 @@
 import {makePrompt} from './prompt.js';
 export const prompt=makePrompt;
-export const defaults={answerProvider:'openrouter',speechProvider:'local',visionModel:'',speechModel:'',speechVoice:'',localVoice:'af_heart',language:'en',outputLanguage:'English',context:'',explanations:false,speed:1,readySound:true,tapGap:300};
-export const rewrite='Rewrite the previous JSON. Preserve answers, order, page numbers and spokenLabel. All spoken labels and instructions must remain in the user-selected output language. Do not detect a language from the question. Replace all visual notation, symbols, fractions and formatting in spokenText with plain spoken words and exact placement instructions. Return only JSON.';
+export const defaults={answerProvider:'openrouter',speechProvider:'local',visionModel:'',speechModel:'',speechVoice:'',localVoice:'af_heart',language:'en',outputLanguage:'English',context:'',writingPauses:false,writingWpm:30,explanations:false,speed:1,readySound:true,tapGap:300};
+export const rewrite='Rewrite the previous JSON. Preserve answers, order, page numbers, spokenLabel and speechSegments. Rewrite notation in segment text, but preserve writingText and pauseSeconds. All spoken labels and instructions must remain in the user-selected output language. Do not detect a language from the question. Replace all visual notation, symbols, fractions and formatting in spokenText with plain spoken words and exact placement instructions. Return only JSON.';
 export function parseSolution(text){
  text=text.replace(/<think>[\s\S]*?<\/think>/g,'');
  const start=text.indexOf('{'),end=text.lastIndexOf('}');
  if(start<0||end<start)throw Error('The model returned no readable answer. Try another model.');
  let result;try{result=JSON.parse(text.slice(start,end+1))}catch{throw Error('The model returned invalid answer JSON. Try another model.')}
  if(!Array.isArray(result.problems)||!result.problems.length||result.problems.length>50)throw Error('No complete questions were found.');
- result.problems=result.problems.map((p,index)=>{if(typeof p.answer!=='string'||!p.answer.trim())throw Error('A question has no answer.');return {number:String(p.number??index+1),question:String(p.question??''),answer:p.answer,explanation:String(p.explanation??''),spokenText:String(p.spokenText??''),spokenLabel:String(p.spokenLabel??''),unreadable:p.unreadable===true,...(Number.isInteger(p.page)&&p.page>0?{page:p.page}:{})}});
+ result.problems=result.problems.map((p,index)=>{if(typeof p.answer!=='string'||!p.answer.trim())throw Error('A question has no answer.');return {number:String(p.number??index+1),question:String(p.question??''),answer:p.answer,explanation:String(p.explanation??''),spokenText:String(p.spokenText??''),spokenLabel:String(p.spokenLabel??''),speechSegments:Array.isArray(p.speechSegments)?p.speechSegments.map(segment=>({text:String(segment.text??''),writingText:String(segment.writingText??''),pauseSeconds:typeof segment.pauseSeconds==='number'&&Number.isFinite(segment.pauseSeconds)?segment.pauseSeconds:null})):[],unreadable:p.unreadable===true,...(Number.isInteger(p.page)&&p.page>0?{page:p.page}:{})}});
  return result;
 }
-export const needsRewrite=s=>s.problems.some(p=>(!p.unreadable&&!p.spokenText?.trim())||/[\\{}$^_|/=+×÷√²³½¼¾⅓⅔<>%°*`#•●→←↔\u2150-\u215e\u2070-\u209f\u2200-\u22ff]|^\s*(?:[-*#]|\d+[.)])\s/m.test([p.spokenLabel||'',p.spokenText?.trim()||p.answer||''].join('\n')));
+export const needsRewrite=s=>s.problems.some(p=>(!p.unreadable&&!p.spokenText?.trim())||/[\\{}$^_|/=+×÷√²³½¼¾⅓⅔<>%°*`#•●→←↔\u2150-\u215e\u2070-\u209f\u2200-\u22ff]|^\s*(?:[-*#]|\d+[.)])\s/m.test([p.spokenLabel||'',p.spokenText?.trim()||p.answer||'',...(p.speechSegments||[]).map(segment=>segment.text)].join('\n')));
 export function speechText(solution,s){return solution.problems.map(p=>`${p.spokenLabel?.trim().replace(/[.\s]+$/,'')||p.number}. ${p.spokenText||p.answer+(s.explanations?' '+p.explanation:'')}`).join('\n\n')}
 export function cleanKey(value){const key=value.trim().replace(/^Bearer\s+/i,'').replace(/[\s\u0000-\u001f\u007f-\uffff]/g,'');if(key&&!/^sk-or-v1-[a-zA-Z0-9_-]+$/.test(key))throw Error('Paste a complete OpenRouter API key beginning with sk-or-v1-.');return key}
 export const orderedQueue=(items,consumed)=>items.filter(i=>!consumed.includes(i.id)).sort((a,b)=>Number(a.sequence)-Number(b.sequence));

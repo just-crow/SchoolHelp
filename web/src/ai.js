@@ -30,10 +30,14 @@ export async function speechRemote(text,s,key,signal){
 }
 export function pcmWave(samples,rate){const bytes=new ArrayBuffer(44+samples.length*2),view=new DataView(bytes);let o=0;const text=s=>{for(const c of s)view.setUint8(o++,c.charCodeAt(0))};const word=(v,n)=>{n===4?view.setUint32(o,v,true):view.setUint16(o,v,true);o+=n};text('RIFF');word(bytes.byteLength-8,4);text('WAVEfmt ');word(16,4);word(1,2);word(1,2);word(rate,4);word(rate*2,4);word(2,2);word(16,2);text('data');word(samples.length*2,4);for(const n of samples)word(n,2);return new Blob([bytes],{type:'audio/wav'})}
 let encoder;
-export async function m4a(blob){
- if(blob.type.includes('mp4')||blob.type.includes('m4a'))return blob;
+async function encoderReady(){
  const {FFmpeg}=await import('@ffmpeg/ffmpeg');
  if(!encoder){encoder=new FFmpeg();await encoder.load({coreURL:new URL('./ffmpeg/ffmpeg-core.js',document.baseURI).href,wasmURL:new URL('./ffmpeg/ffmpeg-core.wasm',document.baseURI).href}).catch(error=>{encoder=null;throw error})}
+ return encoder;
+}
+export async function m4a(blob){
+ if(blob.type.includes('mp4')||blob.type.includes('m4a'))return blob;
+ await encoderReady();
  const input='input.'+(blob.type.includes('wav')?'wav':blob.type.includes('ogg')?'ogg':'mp3');
  try{await encoder.writeFile(input,new Uint8Array(await blob.arrayBuffer()));const status=await encoder.exec(['-i',input,'-vn','-c:a','aac','-b:a','64k','-movflags','+faststart','output.m4a']);if(status!==0)throw Error('AAC recording conversion failed.');const bytes=await encoder.readFile('output.m4a');return new Blob([bytes],{type:'audio/mp4'})}finally{await encoder.deleteFile(input).catch(()=>{});await encoder.deleteFile('output.m4a').catch(()=>{})}
 }
@@ -44,4 +48,24 @@ export function local(type,values,progress){
  const id=++sequence;return new Promise((resolve,reject)=>{requests.set(id,{resolve,reject,progress});worker.postMessage({id,type,...values})});
 }
 export async function solveLocal(photos,s,progress){const text=await local('solve',{images:await Promise.all(photos.map(p=>dataURL(p.blob))),prompt:[prompt(s),contextNote(s)].filter(Boolean).join('\n\n')},progress);let solution;try{solution=parseSolution(text)}catch{throw Error('The small local vision model could not structure these questions. Try a closer photo or explicitly select an OpenRouter vision model.')}if(needsRewrite(solution))throw Error('Local model returned visual notation. Retry or explicitly select OpenRouter.');return solution}
-export async function speechLocal(solution,s,progress){const result=await local('speech',{text:speechText(solution,s),language:s.language,voice:s.localVoice},progress);if(result.blob)return result.blob;const pcm=Int16Array.from(result.audio,v=>Math.max(-32768,Math.min(32767,Math.round(v*32767))));return pcmWave(pcm,result.rate)}
+export async function speechLocal(solution,s,progress){return speechLocalText(speechText(solution,s),s,progress)}
+export async function speechLocalText(text,s,progress){const result=await local('speech',{text,language:s.language,voice:s.localVoice},progress);if(result.blob)return result.blob;const pcm=Int16Array.from(result.audio,v=>Math.max(-32768,Math.min(32767,Math.round(v*32767))));return pcmWave(pcm,result.rate)}
+
+export async function combineWritingAudio(clips,speed,signal){
+ const active=await encoderReady();
+ const cancel=()=>{active.terminate();if(encoder===active)encoder=null};
+ signal?.addEventListener('abort',cancel,{once:true});
+ const files=[];
+ try{
+  for(const [index,clip] of clips.entries()){
+   signal?.throwIfAborted();const name=`writing-${index}.audio`;files.push(name);
+   await active.writeFile(name,new Uint8Array(await clip.blob.arrayBuffer()));
+  }
+  const args=files.flatMap(name=>['-i',name]);
+  const filters=clips.map((clip,index)=>`[${index}:a]aresample=24000,aformat=sample_fmts=fltp:channel_layouts=mono,apad=pad_dur=${(clip.pauseSeconds*speed).toFixed(6)}[a${index}]`);
+  filters.push(clips.map((_,i)=>`[a${i}]`).join('')+`concat=n=${clips.length}:v=0:a=1[out]`);
+  const status=await active.exec([...args,'-filter_complex',filters.join(';'),'-map','[out]','-c:a','aac','-b:a','64k','-movflags','+faststart','writing.m4a']);
+  signal?.throwIfAborted();if(status!==0)throw Error('Could not assemble writing pauses. Retry speech.');
+  return new Blob([await active.readFile('writing.m4a')],{type:'audio/mp4'});
+ }finally{signal?.removeEventListener('abort',cancel);for(const name of [...files,'writing.m4a'])await active.deleteFile(name).catch(()=>{})}
+}

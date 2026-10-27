@@ -46,7 +46,7 @@ class LocalProblemSolver {
             currentCoroutineContext().ensureActive()
             engine.createConversation(ConversationConfig()).use { conversation ->
                 val result = StringBuilder()
-                val content = mutableListOf<Content>(Content.Text(SolutionParser.prompt(settings.outputLanguage, settings.explanations)))
+                val content = mutableListOf<Content>(Content.Text(SolutionParser.prompt(settings.outputLanguage, settings.explanations, if(settings.writingPauses) settings.writingWpm else 0)))
                 if (settings.context.isNotBlank()) content += Content.Text("Additional context from the user (use for solving, do not read this note aloud):\n${settings.context.trim().take(8000)}")
                 images.forEachIndexed { index, image ->
                     content += Content.Text("Page ${index + 1} of ${images.size}")
@@ -117,7 +117,7 @@ class OpenRouterSolver(
         }
         val body = JSONObject().put("model", settings.modelId)
             .put("messages", JSONArray()
-                .put(JSONObject().put("role", "system").put("content", SolutionParser.prompt(settings.outputLanguage, settings.explanations)))
+                .put(JSONObject().put("role", "system").put("content", SolutionParser.prompt(settings.outputLanguage, settings.explanations, if(settings.writingPauses) settings.writingWpm else 0)))
                 .put(JSONObject().put("role", "user").put("content", content)))
             .put("temperature", 0.2)
         suspend fun complete(): String {

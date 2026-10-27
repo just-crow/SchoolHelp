@@ -18,6 +18,8 @@ data class AppSettings(
     val language: String = "en",
     val outputLanguage: String = "English",
     val context: String = "",
+    val writingPauses: Boolean = false,
+    val writingWpm: Int = 30,
     val explanations: Boolean = true,
     val modelId: String = "",
     val rate: Float = 1f,
@@ -34,6 +36,8 @@ class SettingsStore(context: Context) {
     fun load() = AppSettings(
         provider = runCatching { AiProvider.valueOf(prefs.getString("provider", "LOCAL")!!) }.getOrDefault(AiProvider.LOCAL),
         language = prefs.getString("language", "en")!!.let { if (it == "pl") "pl" else "en" },
+        writingPauses = prefs.getBoolean("writingPauses", false),
+        writingWpm = prefs.getInt("writingWpm", 30).coerceIn(1,300),
         context = prefs.getString("answerContext", "")!!,
         outputLanguage = prefs.getString("outputLanguage", if (prefs.getString("language", "en") == "pl") "Polish" else "English")!!,
         explanations = prefs.getBoolean("explanations", true),
@@ -47,7 +51,7 @@ class SettingsStore(context: Context) {
     )
 
     fun save(settings: AppSettings) {
-        prefs.edit().putString("provider", settings.provider.name)
+        prefs.edit().putBoolean("writingPauses",settings.writingPauses).putInt("writingWpm",settings.writingWpm).putString("provider", settings.provider.name)
             .putString("answerContext", settings.context).putString("outputLanguage", settings.outputLanguage).putString("language", settings.language).putBoolean("explanations", settings.explanations)
             .putString("modelId", settings.modelId).putFloat("rate", settings.rate)
             .putLong("tapGap", settings.tapGapMs).putBoolean("readySound", settings.readySound)

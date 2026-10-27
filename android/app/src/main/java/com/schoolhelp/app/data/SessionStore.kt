@@ -41,7 +41,7 @@ class SessionStore(context: Context) {
             json.put("solution", JSONObject().put("problems", JSONArray(solution.problems.map { problem ->
                 JSONObject().put("number", problem.number).put("question", problem.question)
                     .put("answer", problem.answer).put("explanation", problem.explanation)
-                    .put("spokenLabel", problem.spokenLabel).put("spokenText", problem.spokenText).put("unreadable", problem.unreadable).put("page", problem.page)
+                    .put("speechSegments",com.schoolhelp.app.core.WritingPauses.json(problem.speechSegments)).put("spokenLabel", problem.spokenLabel).put("spokenText", problem.spokenText).put("unreadable", problem.unreadable).put("page", problem.page)
             })))
         }
         database.records().put(StoredRecord("session", "session", json.toString(), 0))

@@ -113,6 +113,28 @@ import CryptoKit
     private func makeSpeech(_ solution:Solution) async throws {
         let text=solution.speech(language:settings.language,explanations:settings.explanations)
         let target=sharing.store.root.appendingPathComponent("own.m4a")
+        if settings.writingPauses == true {
+            let parts=try WritingPauses.plan(solution,settings.writingWpm ?? 30,settings.explanations)
+            let directory=sharing.store.root.appendingPathComponent("writing-"+UUID().uuidString)
+            try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+            defer {try? FileManager.default.removeItem(at:directory)}
+            var clips:[(URL,Double)]=[]
+            for (index,part) in parts.enumerated() {
+                try Task.checkCancellation();busy="Generating speech part \(index+1) of \(parts.count), with writing time"
+                let clip=directory.appendingPathComponent("part-\(index).m4a")
+                try await speechClip(part.text,clip);clips.append((clip,part.pauseSeconds))
+            }
+            try await AudioEncoding.combine(clips,settings.speed,target)
+        } else {try await speechClip(text,target)}
+        ownAudio=target;playback.load(target,speed:settings.speed);shared=false;screen="listen";defaults.set(true,forKey:"own-listening");defaults.set(true,forKey:"screen-listen")
+        if settings.readySound {playback.readyCue()}
+        if sharing.enabled {
+            let id=UUID().uuidString
+            try sharing.enqueue(OutgoingItem(id:id,solution:solution,spokenText:text,speed:settings.speed,language:settings.language,source:id+"-source.m4a"),audio:target)
+            Task {await sync()}
+        }
+    }
+    private func speechClip(_ text:String,_ target:URL) async throws {
         if settings.speechProvider=="local" {
             let name=settings.language == "pl" ? "piper-pl":"kokoro-en"
             let imported=sharing.store.root.appendingPathComponent("models/\(name)")
@@ -122,13 +144,6 @@ import CryptoKit
         } else {
             guard let key=Keychain.get("openrouter-key") else{throw AppError.message("Add your OpenRouter key")}
             _=try await remote.generateSpeech(text:text,key:key,settings:settings,output:target)
-        }
-        ownAudio=target;playback.load(target,speed:settings.speed);shared=false;screen="listen";defaults.set(true,forKey:"own-listening");defaults.set(true,forKey:"screen-listen")
-        if settings.readySound {playback.readyCue()}
-        if sharing.enabled {
-            let id=UUID().uuidString
-            try sharing.enqueue(OutgoingItem(id:id,solution:solution,spokenText:text,speed:settings.speed,language:settings.language,source:id+"-source.m4a"),audio:target)
-            Task {await sync()}
         }
     }
     func openShared() {
