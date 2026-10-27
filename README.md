@@ -31,3 +31,5 @@ The [SchoolHelp website](https://just-crow.github.io/SchoolHelp/) also runs on i
 See `ios/README.md`. The source targets iOS 18 or later and uses the same codes, anonymous Supabase identity, ordered M4A queue, and solution JSON as Android. An installable iPhone build requires macOS with Xcode. Apple push notifications and TestFlight require Apple developer signing and APNs setup. The iPhone project has not been compiled or run on Apple hardware from this Windows workspace.
 
 OpenRouter requests use a user-supplied key stored on each device. Local Gemma and sherpa-onnx assets are optional downloads/imports. The app never silently changes a local selection into a paid OpenRouter request.
+
+Update delivery and release instructions: [docs/UPDATES.md](docs/UPDATES.md).
