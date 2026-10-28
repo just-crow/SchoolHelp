@@ -316,7 +316,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         playback.pause()
         try {
             database.records().put(com.schoolhelp.app.data.StoredRecord("generation-job","job","{\"stage\":\"solving\"}",System.currentTimeMillis()))
-            ProcessingService.start(getApplication(),audio=true)
+            ProcessingService.start(getApplication(),audio=config.speechProvider == AiProvider.LOCAL)
         }
         catch(e: Exception) {
             CrashDiagnostics.record(getApplication(),"processing-start",e)

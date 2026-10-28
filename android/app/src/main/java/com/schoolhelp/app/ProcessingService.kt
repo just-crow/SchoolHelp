@@ -26,7 +26,9 @@ class ProcessingService : Service() {
             .setContentText("Reading pages and generating speech").setOngoing(true).setContentIntent(open)
             .addAction(0, "Cancel", cancel).build()
         val type = if (Build.VERSION.SDK_INT >= 35 && intent?.getBooleanExtra("audio",false)==true) android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROCESSING else android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-        androidx.core.app.ServiceCompat.startForeground(this,102,notification,type)
+        // Core 1.17 ServiceCompat masks flags to Android 14 types, dropping mediaProcessing to zero.
+        if (Build.VERSION.SDK_INT >= 35) startForeground(102,notification,type)
+        else androidx.core.app.ServiceCompat.startForeground(this,102,notification,type)
         if (lock == null) lock = getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SchoolHelp:processing").apply { acquire(30 * 60 * 1000L) }
         return START_NOT_STICKY
         } catch (e: Exception) {
