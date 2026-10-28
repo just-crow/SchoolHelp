@@ -33,6 +33,14 @@ import XCTest
         XCTAssertEqual(plan.map{$0.text},["Question one. Write A.","Write B."])
         XCTAssertEqual(plan.map{$0.pauseSeconds},[2,9])
     }
+    func testEssayInstructionsAndParagraphsRemainCompleteWithoutOptionalReasoning() {
+        let prompt=ListeningText.prompt(language:"English",explanations:false,writingWpm:30)
+        XCTAssertTrue(prompt.contains("Distinguish the task genre"))
+        XCTAssertTrue(prompt.contains("Preserve them even when optional explanations are disabled"))
+        let essay="A thesis introduces the argument.\n\nThe body develops evidence.\n\nThe conclusion answers the task."
+        let problem=Problem(number:"1",question:"",answer:essay,explanation:"",spokenText:essay,unreadable:false,spokenLabel:"Essay.",page:nil)
+        XCTAssertEqual(Solution(problems:[problem]).speech(language:"en",explanations:false),"Essay. \(essay)")
+    }
     func testVisualFractionNeedsRewrite() {
         let answer=Solution(problems:[Problem(number:"1",question:"",answer:"x",explanation:"",spokenText:"1/2",unreadable:false,page:1)])
         XCTAssertTrue(ListeningText.needsRewrite(answer))

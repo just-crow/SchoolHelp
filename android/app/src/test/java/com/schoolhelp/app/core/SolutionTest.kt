@@ -31,6 +31,26 @@ class SolutionTest {
         }
     }
 
+    @Test fun essayRulesPreserveArgumentEvenWithOptionalReasoningOff() {
+        for (reasoning in listOf(false,true)) {
+            val prompt=SolutionParser.prompt("English",reasoning,30)
+            assertTrue(prompt.contains("Distinguish the task genre"))
+            assertTrue(prompt.contains("finished piece itself, not an outline"))
+            assertTrue(prompt.contains("Preserve them even when optional explanations are disabled"))
+            assertTrue(prompt.contains("word count and paragraph count"))
+            assertTrue(prompt.contains("Short factual questions, calculations and multiple-choice tasks need concise"))
+            assertTrue(prompt.contains("one complete paragraph per segment"))
+        }
+        assertTrue(SolutionParser.rewritePrompt("English",false).contains("never turn it into a short answer, outline or summary"))
+    }
+    @Test fun essayParagraphsAndFullConclusionSurviveSpeechCleanup() {
+        val essay="A thesis introduces the argument.\n\nThe body develops evidence and explains it.\n\nThe conclusion answers the task."
+        val solution=Solution(listOf(Problem("1","",essay,"",essay,spokenLabel="Essay.")))
+        assertFalse(SolutionParser.needsSpokenRewrite(solution))
+        assertEquals("Essay. $essay",solution.speech(false,"en"))
+        assertEquals(essay,SpeechText.clean(essay))
+    }
+
     private val json = """{"problems":[{"number":"7","question":"2 + 2","answer":"4","explanation":"Add two and two.","spokenText":"The answer is four. Add two and two.","unreadable":false}]}"""
 
     @Test fun parsesNumberedProblemFromFencedOutput() {
