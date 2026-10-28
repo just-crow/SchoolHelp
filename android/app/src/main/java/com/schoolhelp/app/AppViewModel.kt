@@ -348,7 +348,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val spokenText = if(plan.isNotEmpty()) plan.joinToString("\n\n") { it.text } else solution.speech(config.explanations, config.language)
                 if(config.writingPauses) {
                     output = File(sessions.directory,"answer-${java.util.UUID.randomUUID()}.m4a")
-                    output = com.schoolhelp.app.audio.WritingAudio.generate(getApplication(),plan,playbackSpeed,output) { text, target, index, total ->
+                    output = com.schoolhelp.app.audio.WritingAudio.generate(getApplication(),plan,playbackSpeed,output,cueSounds=config.writingPauseSounds) { text, target, index, total ->
                         CrashDiagnostics.stage("speech part $index of $total")
                         mutable.update { it.copy(busy="Generating speech part $index of $total, with writing time") }
                         if(cloudSpeech) remoteSpeech.generate(text,preferences.apiKey(),config,target)

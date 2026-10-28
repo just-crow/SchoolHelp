@@ -15,6 +15,24 @@ import kotlin.math.sin
 
 @RunWith(AndroidJUnit4::class)
 class WritingAudioTest {
+    @Test fun cueRecordingKeepsTheSameWritingDuration() = runBlocking {
+        val context=InstrumentationRegistry.getInstrumentation().targetContext
+        val tone=File(context.cacheDir,"cue-source.wav")
+        val samples=12000
+        val data=ByteBuffer.allocate(44+samples*2).order(ByteOrder.LITTLE_ENDIAN)
+            .put("RIFF".toByteArray()).putInt(36+samples*2).put("WAVEfmt ".toByteArray()).putInt(16).putShort(1).putShort(1)
+            .putInt(24000).putInt(48000).putShort(2).putShort(16).put("data".toByteArray()).putInt(samples*2)
+        repeat(samples){data.putShort((sin(it*2*Math.PI*440/24000)*10000).toInt().toShort())}
+        tone.writeBytes(data.array())
+        val output=File(context.filesDir,"writing-cues-fixture.m4a");output.delete()
+        try {
+            AudioExport.combine(context,listOf(tone to 6.0),.5f,output,cueSounds=true)
+            val metadata=MediaMetadataRetriever()
+            try {metadata.setDataSource(output.path);val duration=metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)!!.toLong();assertTrue("Unexpected cue duration $duration",duration in 3300..3700)}
+            finally {metadata.release()}
+        } finally {tone.delete()}
+    }
+
     @Test fun generatedAudioContainsWritingTimeIncludingFinalPause() = runBlocking {
         val context=InstrumentationRegistry.getInstrumentation().targetContext
         val tone=File(context.cacheDir,"writing-test.wav")

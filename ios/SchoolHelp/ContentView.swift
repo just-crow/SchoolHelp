@@ -111,6 +111,8 @@ struct ContentView:View {
                 HStack {Text("Playback speed \(String(format:"%.2f",model.settings.speed))×");Slider(value:Binding(get:{Double(model.settings.speed)},set:{model.settings.speed=Float($0)}),in:0.25...2,step:0.05)}
                 Toggle("Writing pauses",isOn:Binding(get:{model.settings.writingPauses ?? false},set:{model.settings.writingPauses=$0}))
                 if model.settings.writingPauses == true {
+                    Toggle("Writing pause sounds",isOn:Binding(get:{model.settings.writingPauseSounds ?? true},set:{model.settings.writingPauseSounds=$0}))
+                    Text("Quiet ticks every five seconds of writing time. Manual playback pause stops them too.").font(.caption)
                     Stepper("Writing speed: \(model.settings.writingWpm ?? 30) words/minute",value:Binding(get:{model.settings.writingWpm ?? 30},set:{model.settings.writingWpm=$0}),in:1...300)
                     Text("Context can request different timing or pauses after each row/step. Up to 10 minutes per pause. Applies to new recordings.").font(.caption)
                 }

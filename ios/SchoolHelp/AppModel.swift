@@ -124,7 +124,7 @@ import CryptoKit
                 let clip=directory.appendingPathComponent("part-\(index).m4a")
                 try await speechClip(part.text,clip);clips.append((clip,part.pauseSeconds))
             }
-            try await AudioEncoding.combine(clips,settings.speed,target)
+            try await AudioEncoding.combine(clips,settings.speed,target,cues:settings.writingPauseSounds ?? true)
         } else {try await speechClip(text,target)}
         ownAudio=target;playback.load(target,speed:settings.speed);shared=false;screen="listen";defaults.set(true,forKey:"own-listening");defaults.set(true,forKey:"screen-listen")
         if settings.readySound {playback.readyCue()}

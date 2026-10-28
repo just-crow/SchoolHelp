@@ -38,7 +38,7 @@ class ExportStabilityTest {
             try {
                 coroutineScope {
                     listOf(
-                        async {AudioExport.combine(context,List(100){index->(if(index%2==0)mp3 else tone) to .1},.5f,files[0])},
+                        async {AudioExport.combine(context,List(100){index->(if(index%2==0)mp3 else tone) to .1},.5f,files[0],cueSounds=true)},
                         async {AudioExport.encode(context,tone,files[1])},
                         async {AudioExport.combine(context,List(10){tone to .2},.25f,files[2])}
                     ).awaitAll()

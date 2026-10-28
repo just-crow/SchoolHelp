@@ -118,3 +118,36 @@ enum WritingPauses {
         return result
     }
 }
+
+
+enum WritingCue {
+    static func write(_ url:URL,_ seconds:Double,_ speed:Float)throws {
+        let rate=8000
+        let frames=max(1,Int((seconds*Double(speed)*Double(rate)).rounded()))
+        var header=Data()
+        func word(_ value:Int,_ bytes:Int){for index in 0..<bytes{header.append(UInt8((value>>(index*8))&255))}}
+        header.append(Data("RIFF".utf8));word(36+frames*2,4);header.append(Data("WAVEfmt ".utf8));word(16,4);word(1,2);word(1,2)
+        word(rate,4);word(rate*2,4);word(2,2);word(16,2);header.append(Data("data".utf8));word(frames*2,4)
+        guard FileManager.default.createFile(atPath:url.path,contents:header) else{throw AppError.message("Could not create writing cue")}
+        let file=try FileHandle(forWritingTo:url);defer{try? file.close()};try file.seekToEnd()
+        var frame=0
+        while frame<frames {
+            try Task.checkCancellation()
+            let count=min(2048,frames-frame)
+            var bytes=[UInt8](repeating:0,count:count*2)
+            for index in 0..<count {
+                let position=frame+index
+                let time=Double(position)/Double(rate)/Double(speed)
+                if time>=0.15 {
+                    let phase=(time-0.15).truncatingRemainder(dividingBy:5)
+                    if phase<0.09 {
+                        let envelope=pow(sin(Double.pi*phase/0.09),2)
+                        let value=Int16((sin(2*Double.pi*660*Double(position)/Double(rate))*envelope*0.035*32767).rounded())
+                        let bits=UInt16(bitPattern:value);bytes[index*2]=UInt8(bits&255);bytes[index*2+1]=UInt8(bits>>8)
+                    }
+                }
+            }
+            try file.write(contentsOf:Data(bytes));frame+=count
+        }
+    }
+}

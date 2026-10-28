@@ -21,15 +21,27 @@ object AudioExport {
         val item=EditedMediaItem.Builder(MediaItem.fromUri(android.net.Uri.fromFile(source))).setRemoveVideo(true).build()
         render(context,Composition.Builder(EditedMediaItemSequence.Builder(item).build()).build(),output,"sharing audio export")
     }
-    suspend fun combine(context:Context,clips:List<Pair<File,Double>>,playbackSpeed:Float,output:File) {
+    suspend fun combine(context:Context,clips:List<Pair<File,Double>>,playbackSpeed:Float,output:File,cueSounds:Boolean=false) {
         require(clips.isNotEmpty()) { "No speech clips to combine." }
-        val sequence=EditedMediaItemSequence.Builder().experimentalSetForceAudioTrack(true)
-        clips.forEach { (file,pause) ->
-            sequence.addItem(EditedMediaItem.Builder(MediaItem.fromUri(android.net.Uri.fromFile(file))).setRemoveVideo(true).build())
-            val gapUs=(pause*playbackSpeed*1_000_000).toLong()
-            if(gapUs>0)sequence.addGap(gapUs)
-        }
-        render(context,Composition.Builder(sequence.build()).build(),output,"writing audio assembly: ${clips.size} clips")
+        val directory=File(output.parentFile,"cues-${java.util.UUID.randomUUID()}")
+        try {
+            val cues=if(cueSounds)withContext(Dispatchers.IO) {
+                check(directory.mkdirs()) { "Could not create writing cue files." }
+                val job=currentCoroutineContext()
+                clips.mapIndexed {index,clip->if(clip.second>0)File(directory,"gap-$index.wav").also {
+                    com.schoolhelp.app.core.WritingCue.write(it,clip.second,playbackSpeed){job.ensureActive()}
+                }else null}
+            }else emptyList()
+            val sequence=EditedMediaItemSequence.Builder().experimentalSetForceAudioTrack(true)
+            clips.forEachIndexed {index,(file,pause)->
+                sequence.addItem(EditedMediaItem.Builder(MediaItem.fromUri(android.net.Uri.fromFile(file))).setRemoveVideo(true).build())
+                val gapUs=(pause*playbackSpeed*1_000_000).toLong()
+                val cue=cues.getOrNull(index)
+                if(cue!=null)sequence.addItem(EditedMediaItem.Builder(MediaItem.fromUri(android.net.Uri.fromFile(cue))).setRemoveVideo(true).build())
+                else if(gapUs>0)sequence.addGap(gapUs)
+            }
+            render(context,Composition.Builder(sequence.build()).build(),output,"writing audio assembly: ${clips.size} clips")
+        }finally{withContext(NonCancellable+Dispatchers.IO){directory.listFiles()?.forEach {it.delete()};directory.delete()}}
     }
     private suspend fun render(context:Context,composition:Composition,output:File,stage:String) = exportLock.withLock {
         withContext(Dispatchers.Main.immediate) {

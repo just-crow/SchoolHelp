@@ -108,6 +108,9 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
             model.settings(settings.copy(writingPauses = it))
         }
         if (settings.writingPauses) {
+            SettingSwitch("Writing pause sounds", "A quiet tick at the start and every five seconds of writing time. Manual pause stops the sound too.", settings.writingPauseSounds) {
+                model.settings(settings.copy(writingPauseSounds=it))
+            }
             var wpmText by remember { mutableStateOf(settings.writingWpm.toString()) }
             OutlinedTextField(wpmText, { value -> wpmText = value.filter { it.isDigit() }.take(3); wpmText.toIntOrNull()?.takeIf { it in 1..300 }?.let { model.settings(settings.copy(writingWpm = it)) } },
                 label = { Text("Writing speed (words per minute)") }, singleLine = true,

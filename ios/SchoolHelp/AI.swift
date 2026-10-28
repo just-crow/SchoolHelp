@@ -11,6 +11,7 @@ struct AISettings: Codable {
     var outputLanguage:String? = nil
     var context:String? = nil
     var writingPauses:Bool? = nil
+    var writingPauseSounds:Bool? = nil
     var writingWpm:Int? = nil
     var contextNote:String {let text=(context ?? "").trimmingCharacters(in:.whitespacesAndNewlines);return text.isEmpty ? "":"Additional context from the user (use for solving, do not read this note aloud):\n" + String(text.prefix(8000))}
     var requestedLanguage:String {outputLanguage ?? (language == "pl" ? "Polish":"English")}
@@ -111,7 +112,9 @@ enum WAV {
 }
 
 enum AudioEncoding {
-    static func combine(_ clips:[(URL,Double)],_ speed:Float,_ output:URL) async throws {
+    static func combine(_ clips:[(URL,Double)],_ speed:Float,_ output:URL,cues:Bool=true) async throws {
+        var cueFiles:[URL]=[]
+        defer {for file in cueFiles {try? FileManager.default.removeItem(at:file)}}
         let composition=AVMutableComposition()
         guard let track=composition.addMutableTrack(withMediaType:.audio,preferredTrackID:kCMPersistentTrackID_Invalid) else{throw AppError.message("Audio assembly unavailable")}
         var cursor=CMTime.zero
@@ -122,7 +125,21 @@ enum AudioEncoding {
             let duration=try await asset.load(.duration)
             try track.insertTimeRange(CMTimeRange(start:.zero,duration:duration),of:source,at:cursor)
             cursor=CMTimeAdd(cursor,duration)
-            if pause>0 {let gap=CMTime(seconds:pause*Double(speed),preferredTimescale:24000);track.insertEmptyTimeRange(CMTimeRange(start:cursor,duration:gap));cursor=CMTimeAdd(cursor,gap)}
+            if pause>0 {
+                let gap=CMTime(seconds:pause*Double(speed),preferredTimescale:24000)
+                if cues {
+                    let file=output.deletingLastPathComponent().appendingPathComponent("cue-"+UUID().uuidString+".wav")
+                    cueFiles.append(file);try WritingCue.write(file,pause,speed)
+                    let cueAsset=AVURLAsset(url:file)
+                    guard let cueTrack=try await cueAsset.loadTracks(withMediaType:.audio).first else{throw AppError.message("Writing cue has no audio")}
+                    let cueDuration=try await cueAsset.load(.duration)
+                    let used=CMTimeMinimum(gap,cueDuration)
+                    try track.insertTimeRange(CMTimeRange(start:.zero,duration:used),of:cueTrack,at:cursor)
+                    let remainder=CMTimeSubtract(gap,used)
+                    if remainder.seconds>0 {track.insertEmptyTimeRange(CMTimeRange(start:CMTimeAdd(cursor,used),duration:remainder))}
+                }else{track.insertEmptyTimeRange(CMTimeRange(start:cursor,duration:gap))}
+                cursor=CMTimeAdd(cursor,gap)
+            }
         }
         try? FileManager.default.removeItem(at:output)
         guard let session=AVAssetExportSession(asset:composition,presetName:AVAssetExportPresetAppleM4A) else{throw AppError.message("Audio assembly unavailable")}

@@ -41,6 +41,15 @@ import XCTest
         let problem=Problem(number:"1",question:"",answer:essay,explanation:"",spokenText:essay,unreadable:false,spokenLabel:"Essay.",page:nil)
         XCTAssertEqual(Solution(problems:[problem]).speech(language:"en",explanations:false),"Essay. \(essay)")
     }
+    func testWritingCueFilePreservesPauseDurationAtQuarterSpeed() throws {
+        let file=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString+".wav")
+        defer {try? FileManager.default.removeItem(at:file)}
+        try WritingCue.write(file,6,0.25)
+        let data=try Data(contentsOf:file)
+        XCTAssertEqual(data.count,44+12000*2)
+        XCTAssertEqual(String(data:data.prefix(4),encoding:.utf8),"RIFF")
+        XCTAssertTrue(data.dropFirst(44).contains(where:{$0 != 0}))
+    }
     func testVisualFractionNeedsRewrite() {
         let answer=Solution(problems:[Problem(number:"1",question:"",answer:"x",explanation:"",spokenText:"1/2",unreadable:false,page:1)])
         XCTAssertTrue(ListeningText.needsRewrite(answer))

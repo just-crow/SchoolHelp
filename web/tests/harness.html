@@ -1,7 +1,16 @@
-<!doctype html><html><head><base href="/"><title>SchoolHelp browser verification</title></head><body><h1>SchoolHelp browser verification</h1><button id="audio">Verify AAC export</button><button id="writing">Verify writing silence</button><button id="seed">Load listening fixture</button><pre id="result"></pre><a href="/">Open application</a><script type="module">
+<!doctype html><html><head><base href="/"><title>SchoolHelp browser verification</title></head><body><h1>SchoolHelp browser verification</h1><button id="audio">Verify AAC export</button><button id="cues">Verify writing cues</button><button id="writing">Verify writing silence</button><button id="seed">Load listening fixture</button><pre id="result"></pre><a href="/">Open application</a><script type="module">
 import {m4a,pcmWave,combineWritingAudio} from '/src/ai.js';import {put} from '/src/store.js';import {defaults} from '/src/core.js';
 const output=document.querySelector('#result');let audio;
 document.querySelector('#audio').onclick=async()=>{try{output.textContent='Converting…';audio=await m4a(pcmWave(Int16Array.from({length:24000*20},(_,i)=>Math.sin(i/24000*Math.PI*2*440)*2000),24000));output.textContent=`PASS AAC export: ${audio.type}, ${audio.size} bytes`}catch(error){output.textContent='FAIL '+error.stack}};
+document.querySelector('#cues').onclick=async()=>{try{
+ output.textContent='Assembling writing cues…';
+ const blob=pcmWave(Int16Array.from({length:12000},(_,i)=>Math.sin(i/24000*Math.PI*2*440)*10000),24000);
+ audio=await combineWritingAudio([{blob,pauseSeconds:6}],0.5,undefined,true);
+ const context=new AudioContext();const decoded=await context.decodeAudioData(await audio.arrayBuffer());const data=decoded.getChannelData(0);
+ const rms=(start,end)=>{const samples=data.slice(Math.floor(start*decoded.sampleRate),Math.floor(end*decoded.sampleRate));return Math.sqrt(samples.reduce((n,v)=>n+v*v,0)/samples.length)};
+ if(Math.abs(decoded.duration-3.5)>.15||rms(.57,.63)<.001||rms(3.07,3.13)<.001||rms(1,2)>.001)throw Error('Cue timing, level or quiet interval did not match');
+ output.textContent=`PASS writing cues: ${decoded.duration.toFixed(3)} seconds; two quiet ticks and unchanged writing time`;await context.close();
+}catch(error){output.textContent='FAIL '+error.stack}};
 document.querySelector('#writing').onclick=async()=>{try{
  output.textContent='Assembling writing pauses…';
  const blob=pcmWave(Int16Array.from({length:12000},(_,i)=>Math.sin(i/24000*Math.PI*2*440)*10000),24000);

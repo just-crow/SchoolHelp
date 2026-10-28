@@ -1,3 +1,4 @@
+import {writingFilters} from './writing-cue.js';
 import {prompt,rewrite,parseSolution,needsRewrite,speechText} from './core.js';
 const base='https://openrouter.ai/api/v1/';
 export const contextNote=s=>s.context?.trim()?`Additional context from the user (use for solving, do not read this note aloud):\n${s.context.trim().slice(0,8000)}`:'';
@@ -51,7 +52,7 @@ export async function solveLocal(photos,s,progress){const text=await local('solv
 export async function speechLocal(solution,s,progress){return speechLocalText(speechText(solution,s),s,progress)}
 export async function speechLocalText(text,s,progress){const result=await local('speech',{text,language:s.language,voice:s.localVoice},progress);if(result.blob)return result.blob;const pcm=Int16Array.from(result.audio,v=>Math.max(-32768,Math.min(32767,Math.round(v*32767))));return pcmWave(pcm,result.rate)}
 
-export async function combineWritingAudio(clips,speed,signal){
+export async function combineWritingAudio(clips,speed,signal,cues=false){
  const active=await encoderReady();
  const cancel=()=>{active.terminate();if(encoder===active)encoder=null};
  signal?.addEventListener('abort',cancel,{once:true});
@@ -62,9 +63,8 @@ export async function combineWritingAudio(clips,speed,signal){
    await active.writeFile(name,new Uint8Array(await clip.blob.arrayBuffer()));
   }
   const args=files.flatMap(name=>['-i',name]);
-  const filters=clips.map((clip,index)=>`[${index}:a]aresample=24000,aformat=sample_fmts=fltp:channel_layouts=mono,apad=pad_dur=${(clip.pauseSeconds*speed).toFixed(6)}[a${index}]`);
-  filters.push(clips.map((_,i)=>`[a${i}]`).join('')+`concat=n=${clips.length}:v=0:a=1[out]`);
-  const status=await active.exec([...args,'-filter_complex',filters.join(';'),'-map','[out]','-c:a','aac','-b:a','64k','-movflags','+faststart','writing.m4a']);
+  const filters=writingFilters(clips,speed,cues);
+  const status=await active.exec([...args,'-filter_complex',filters,'-map','[out]','-c:a','aac','-b:a','64k','-movflags','+faststart','writing.m4a']);
   signal?.throwIfAborted();if(status!==0)throw Error('Could not assemble writing pauses. Retry speech.');
   return new Blob([await active.readFile('writing.m4a')],{type:'audio/mp4'});
  }finally{signal?.removeEventListener('abort',cancel);for(const name of [...files,'writing.m4a'])await active.deleteFile(name).catch(()=>{})}
