@@ -314,11 +314,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             error("Download Gemma in settings, or connect OpenRouter."); return
         }
         playback.pause()
-        database.records().put(com.schoolhelp.app.data.StoredRecord("generation-job","job","{\"stage\":\"solving\"}",System.currentTimeMillis()))
-        ProcessingService.start(getApplication())
+        try {
+            database.records().put(com.schoolhelp.app.data.StoredRecord("generation-job","job","{\"stage\":\"solving\"}",System.currentTimeMillis()))
+            ProcessingService.start(getApplication(),audio=true)
+        }
+        catch(e: Exception) {
+            CrashDiagnostics.record(getApplication(),"processing-start",e)
+            runCatching {database.records().delete("generation-job")}
+            error("Could not start preparation. Reopen SchoolHelp, check free storage and retry.")
+            return
+        }
         work = appScope.launch {
             var output: File? = null
             try {
+                CrashDiagnostics.stage("answer preparation")
                 playback.clear()
                 state.value.recording?.delete()
                 mutable.update { it.copy(busy = if (config.provider == AiProvider.LOCAL) "Reading and solving on your phone" else "Reading and solving with OpenRouter", error = null, solution = cachedSolution, recording = null) }
@@ -331,7 +340,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 mutable.update { it.copy(solution = solution, busy = "Turning answers into speech") }
                 saveSession()
                 database.records().put(com.schoolhelp.app.data.StoredRecord("generation-job","job","{\"stage\":\"speech\"}",System.currentTimeMillis()))
-                ProcessingService.start(getApplication(), audio=config.speechProvider == AiProvider.LOCAL)
+                CrashDiagnostics.stage("speech preparation: ${config.speechProvider}")
                 val cloudSpeech = config.speechProvider == AiProvider.OPENROUTER
                 output = File(sessions.directory, "answer-${java.util.UUID.randomUUID()}.${if (cloudSpeech) "mp3" else "wav"}")
                 val playbackSpeed = com.schoolhelp.app.core.SpeechSpeed.playback(config.rate, cloudSpeech)
@@ -340,6 +349,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if(config.writingPauses) {
                     output = File(sessions.directory,"answer-${java.util.UUID.randomUUID()}.m4a")
                     output = com.schoolhelp.app.audio.WritingAudio.generate(getApplication(),plan,playbackSpeed,output) { text, target, index, total ->
+                        CrashDiagnostics.stage("speech part $index of $total")
                         mutable.update { it.copy(busy="Generating speech part $index of $total, with writing time") }
                         if(cloudSpeech) remoteSpeech.generate(text,preferences.apiKey(),config,target)
                         else speech.generate(text,config.language,com.schoolhelp.app.core.SpeechSpeed.generation(config.rate),File(target.parentFile,target.nameWithoutExtension+".wav"))
@@ -347,6 +357,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 } else if (cloudSpeech) output = remoteSpeech.generate(spokenText, preferences.apiKey(), config, output)
                 else speech.generate(spokenText, config.language, com.schoolhelp.app.core.SpeechSpeed.generation(config.rate), output)
                 state.value.recording?.delete()
+                CrashDiagnostics.stage("saving and queuing audio")
                 try { sharing.snapshot(solution, output, playbackSpeed, config.language, spokenText) }
                 catch (e: CancellationException) { throw e }
                 catch (e: Exception) { mutable.update { it.copy(notice="Answers are ready, but sharing could not be queued: ${e.message}") } }
@@ -354,10 +365,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if(!(getApplication<Application>() as SchoolHelpApplication).visible) com.schoolhelp.app.sharing.SharingNotifications.ready(getApplication(), "Your answers are ready", shared=false)
                 mutable.update { it.copy(recording = output, recordingSpeed = playbackSpeed, savedPositionMs = 0, screen = Screen.LISTEN) }
             } catch (e: CancellationException) { output?.delete(); throw e }
-            catch (e: OutOfMemoryError) { output?.delete(); error("This phone ran out of memory. Close other apps or use OpenRouter.") }
-            catch (e: LinkageError) { output?.delete(); error("The local AI engine is not supported on this device. Try a recent 64-bit Android phone.") }
-            catch (e: Exception) { output?.delete(); error(e.message ?: "Something went wrong. Please try again.") }
-            finally { saveSession(); database.records().delete("generation-job"); mutable.update { it.copy(busy = null) }; ProcessingService.stop(getApplication()) }
+            catch (e: OutOfMemoryError) { CrashDiagnostics.record(getApplication(),"preparation-memory",e); output?.delete(); error("This phone ran out of memory. Close other apps or use OpenRouter.") }
+            catch (e: LinkageError) { CrashDiagnostics.record(getApplication(),"preparation-native",e); output?.delete(); error("The local AI engine is not supported on this device. Try a recent 64-bit Android phone.") }
+            catch (e: Exception) { CrashDiagnostics.record(getApplication(),"preparation",e); output?.delete(); error(e.message ?: "Something went wrong. Please try again.") }
+            finally {
+                saveSession()
+                runCatching {database.records().delete("generation-job")}.onFailure {CrashDiagnostics.record(getApplication(),"preparation-cleanup",it)}
+                mutable.update {it.copy(busy=null)}
+                runCatching {ProcessingService.stop(getApplication())}.onFailure {CrashDiagnostics.record(getApplication(),"processing-stop",it)}
+                CrashDiagnostics.stage("idle")
+            }
         }
     }
 

@@ -14,6 +14,7 @@ class SchoolHelpApplication : Application() {
     val model by lazy { AppViewModel(this) }
     override fun onCreate() {
         super.onCreate()
+        CrashDiagnostics.install(this)
         if (BuildConfig.FIREBASE_APP_ID.isNotBlank()) {
             val options=com.google.firebase.FirebaseOptions.Builder().setApplicationId(BuildConfig.FIREBASE_APP_ID)
                 .setApiKey(BuildConfig.FIREBASE_API_KEY).setProjectId(BuildConfig.FIREBASE_PROJECT_ID).setGcmSenderId(BuildConfig.FIREBASE_SENDER_ID).build()

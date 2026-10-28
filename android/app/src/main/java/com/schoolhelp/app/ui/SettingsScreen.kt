@@ -156,7 +156,15 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
             }
         }
     }
-    Text("SchoolHelp 0.1 · Built for a little more understanding.\nAI answers can contain mistakes; check important results.", style = MaterialTheme.typography.bodySmall, color = Muted)
+    val diagnosticsContext = androidx.compose.ui.platform.LocalContext.current
+    TextButton(onClick = {
+        val report=com.schoolhelp.app.CrashDiagnostics.report(diagnosticsContext)
+        val clipboard=diagnosticsContext.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("SchoolHelp crash report",report))
+        android.widget.Toast.makeText(diagnosticsContext,"Crash report copied. Paste it into this chat for investigation.",android.widget.Toast.LENGTH_LONG).show()
+    }) { Text("Copy crash report") }
+    Text("Crash reports stay on this device and exclude photos, question text and API keys.",style=MaterialTheme.typography.bodySmall,color=Muted)
+    Text("SchoolHelp ${com.schoolhelp.app.BuildConfig.VERSION_NAME} · Built for a little more understanding.\nAI answers can contain mistakes; check important results.", style = MaterialTheme.typography.bodySmall, color = Muted)
     if (showModels) {
         var query by remember { mutableStateOf("") }
         AlertDialog(onDismissRequest = { showModels = false }, title = { Text("Choose a vision model") }, text = {

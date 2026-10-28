@@ -16,6 +16,7 @@ class ProcessingService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        try {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel("processing", "Preparing answers", NotificationManager.IMPORTANCE_LOW))
         val cancel = PendingIntent.getService(this, 2, Intent(this, ProcessingService::class.java).setAction("cancel"), PendingIntent.FLAG_IMMUTABLE)
@@ -28,12 +29,26 @@ class ProcessingService : Service() {
         androidx.core.app.ServiceCompat.startForeground(this,102,notification,type)
         if (lock == null) lock = getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SchoolHelp:processing").apply { acquire(30 * 60 * 1000L) }
         return START_NOT_STICKY
+        } catch (e: Exception) {
+            stopSelf()
+            CrashDiagnostics.record(this,"processing-service",e)
+            val model=(application as SchoolHelpApplication).model
+            model.error("Android could not keep preparation running. Keep SchoolHelp open and retry. Your answers are saved.")
+            model.cancelWork()
+            return START_NOT_STICKY
+        }
     }
     override fun onTimeout(startId: Int, fgsType: Int) {
-        (application as SchoolHelpApplication).model.cancelWork()
         stopSelf()
+        val model=(application as SchoolHelpApplication).model
+        model.cancelWork()
+        model.error("Android stopped background preparation after its time limit. Reopen the app and retry from your saved answers.")
     }
-    override fun onDestroy() { lock?.let { if (it.isHeld) it.release() }; super.onDestroy() }
+    override fun onDestroy() {
+        runCatching {lock?.let {if(it.isHeld)it.release()}}.onFailure {CrashDiagnostics.record(this,"processing-wake-lock-release",it)}
+        lock=null
+        super.onDestroy()
+    }
     companion object {
         fun start(context: Context, audio: Boolean = false) { ContextCompat.startForegroundService(context, Intent(context, ProcessingService::class.java).putExtra("audio",audio)) }
         fun stop(context: Context) { context.stopService(Intent(context, ProcessingService::class.java)) }
