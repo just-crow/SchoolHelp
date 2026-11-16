@@ -9,6 +9,8 @@ import com.schoolhelp.app.ai.RemoteModel
 import com.schoolhelp.app.audio.PlaybackController
 import com.schoolhelp.app.audio.SpeechGenerator
 import com.schoolhelp.app.audio.OpenRouterSpeech
+import com.schoolhelp.app.audio.OpenRouterTranscription
+import com.schoolhelp.app.audio.RecordingLanguage
 import com.schoolhelp.app.audio.SpeechModel
 import com.schoolhelp.app.core.Solution
 import com.schoolhelp.app.data.AiProvider
@@ -55,6 +57,7 @@ data class UiState(
     val testingKey: Boolean = false,
     val speechModels: List<SpeechModel> = emptyList(),
     val loadingSpeechModels: Boolean = false,
+    val transcript: String = "",
 ) {
     val image: File? get() = photos.getOrNull(selectedPhoto)
     companion object { const val MAX_PHOTOS = 10 }
@@ -68,12 +71,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val remote = OpenRouterSolver()
     private val speech = SpeechGenerator(models)
     private val remoteSpeech = OpenRouterSpeech()
+    private val transcription = OpenRouterTranscription()
     private val database = com.schoolhelp.app.data.AppDatabase.get(application)
     private val sessions = SessionStore(application)
     private val restored = sessions.load()
     private val mutable = MutableStateFlow(UiState(settings = preferences.load(), installed = models.installedIds(), hasKey = preferences.hasApiKey(),
         photos = restored.photos, selectedPhoto = restored.selectedPhoto, solution = restored.solution,
         recording = restored.recording, recordingSpeed = restored.recordingSpeed, savedPositionMs = restored.positionMs,
+        transcript = restored.transcript,
         notice = if(database.records().get("generation-job") != null) {
             if(restored.solution != null) "Speech preparation was interrupted. Retry speech from your saved answers."
             else "Preparation was interrupted. Your photos are saved; solve them again when ready."
@@ -104,7 +109,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             sessions.save(SavedSession(current.photos, current.selectedPhoto, current.solution,
                 current.recording, current.recordingSpeed,
                 position,
-                current.screen == Screen.LISTEN))
+                current.screen == Screen.LISTEN, current.transcript))
         } catch (e: Exception) { error("Could not save this session. Free some phone storage and try again.") }
     }
 
@@ -117,6 +122,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun settings(value: AppSettings) {
         preferences.save(value)
         mutable.update { it.copy(settings = value) }
+    }
+
+    fun updateTranscript(value: String) {
+        if (state.value.busy != null || state.value.sharedListening) return
+        mutable.update { it.copy(transcript = value.take(OpenRouterTranscription.MAX_TRANSCRIPT)) }
+    }
+
+    fun transcribe(uri: Uri, language: RecordingLanguage) {
+        if (work?.isActive == true || state.value.busy != null || state.value.sharedListening) return
+        if (!state.value.hasKey) { error("Save your OpenRouter API key in Settings first."); return }
+        work = appScope.launch {
+            mutable.update { it.copy(busy = "Transcribing ${language.label} audio", error = null, notice = null) }
+            try {
+                val result = transcription.transcribe(getApplication<Application>().contentResolver, uri, language, preferences.apiKey())
+                mutable.update { it.copy(transcript = result, notice = "Transcript ready. Review it before solving.") }
+                saveSession()
+            } catch (e: CancellationException) { throw e }
+            catch (e: java.io.IOException) { error("Could not read or send the recording. Check your connection and try again.") }
+            catch (e: Exception) { error(e.message ?: "Could not transcribe the recording.") }
+            finally { mutable.update { it.copy(busy = null) } }
+        }
     }
 
     fun saveKey(key: String): Boolean = runCatching { preferences.saveApiKey(key) }.fold(
@@ -283,6 +309,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (state.value.sharedListening) { nextShared(); return }
         work?.cancel()
         database.records().delete("generation-job")
+        mutable.update { it.copy(transcript = "") }
         clearImage()
         images.clearSessionPhotos()
         mutable.update { it.copy(screen = Screen.HOME, notice = null, recordingSpeed = 1f) }
@@ -296,7 +323,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val snapshot = state.value
         if(snapshot.sharedListening) { error("Return to your own recording before solving new pages."); return }
         val photos = snapshot.photos
-        if (photos.isEmpty() && snapshot.settings.context.isBlank() && !(reuseSolution && snapshot.solution != null)) { error("Add a photo or enter context first."); return }
+        if (photos.isEmpty() && snapshot.settings.context.isBlank() && snapshot.transcript.isBlank() && !(reuseSolution && snapshot.solution != null)) {
+            error("Add a photo, type context, or include a transcript first."); return
+        }
         val cachedSolution = if(reuseSolution) snapshot.solution else null
         val config = snapshot.settings
         if (config.outputLanguage.isBlank()) { error("Enter an answer language before solving."); return }
@@ -335,8 +364,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 saveSession()
                 mutable.update { it.copy(busy = if (photos.isEmpty()) "Working on your text request" else "Reading ${photos.size} page${if (photos.size == 1) "" else "s"} together") }
                 val solution = cachedSolution ?: if (config.provider == AiProvider.LOCAL)
-                    local.solve(models.visionFile(), photos, getApplication<Application>().cacheDir, config)
-                else remote.solve(photos, preferences.apiKey(), config)
+                    local.solve(models.visionFile(), photos, getApplication<Application>().cacheDir, config, snapshot.transcript)
+                else remote.solve(photos, preferences.apiKey(), config, snapshot.transcript)
                 mutable.update { it.copy(solution = solution, busy = "Turning answers into speech") }
                 saveSession()
                 database.records().put(com.schoolhelp.app.data.StoredRecord("generation-job","job","{\"stage\":\"speech\"}",System.currentTimeMillis()))

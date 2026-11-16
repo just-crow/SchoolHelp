@@ -16,6 +16,7 @@ data class SavedSession(
     val recordingSpeed: Float = 1f,
     val positionMs: Long = 0,
     val listening: Boolean = false,
+    val transcript: String = "",
 )
 
 /** One private, durable session. Atomic metadata replacement survives interrupted writes. */
@@ -25,7 +26,7 @@ class SessionStore(context: Context) {
     private val metadata = AtomicFile(File(directory, "state.json"))
 
     fun save(session: SavedSession) {
-        if (session.photos.isEmpty() && session.solution == null && session.recording == null) {
+        if (session.photos.isEmpty() && session.solution == null && session.recording == null && session.transcript.isBlank()) {
             database.records().delete("session")
             metadata.delete()
             return
@@ -37,6 +38,7 @@ class SessionStore(context: Context) {
             .put("recordingSpeed", session.recordingSpeed)
             .put("positionMs", session.positionMs)
             .put("listening", session.listening)
+            .put("transcript", session.transcript)
         session.solution?.let { solution ->
             json.put("solution", JSONObject().put("problems", JSONArray(solution.problems.map { problem ->
                 JSONObject().put("number", problem.number).put("question", problem.question)
@@ -71,6 +73,7 @@ class SessionStore(context: Context) {
             recordingSpeed = json.optDouble("recordingSpeed", 1.0).toFloat().takeIf { it.isFinite() && it > 0f } ?: 1f,
             positionMs = json.optLong("positionMs").coerceAtLeast(0),
             listening = json.optBoolean("listening"),
+            transcript = json.optString("transcript"),
         )
     }.getOrDefault(SavedSession())
 }

@@ -47,7 +47,8 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
         Text(if (settings.provider == AiProvider.LOCAL) "Photo solving stays on your device. Download Gemma below to solve offline."
             else "Photos are sent to OpenRouter and your chosen provider. Your own API key and credits are used.",
             style = MaterialTheme.typography.bodyMedium, color = Muted)
-        if (settings.provider == AiProvider.OPENROUTER || settings.speechProvider == AiProvider.OPENROUTER) {
+    }
+    SettingsSection("OpenRouter connection") {
             OutlinedTextField(value = key, onValueChange = { key = it }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
                 label = { Text(if (state.hasKey) "Replace saved API key" else "OpenRouter API key") },
                 supportingText = { Text(if (state.hasKey) "A key is saved in Android's secure storage." else "Your key is encrypted with Android Keystore.") },
@@ -57,13 +58,12 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
                 OutlinedButton(onClick = model::testKey, enabled = state.hasKey && !state.testingKey) { Text(if (state.testingKey) "Testing…" else "Test connection") }
             }
             if (state.hasKey) TextButton(onClick = { model.saveKey("") }) { Text("Remove saved key") }
-        }
-        if (settings.provider == AiProvider.OPENROUTER) {
+    }
+    if (settings.provider == AiProvider.OPENROUTER) SettingsSection("Vision model") {
             OutlinedButton(onClick = { showModels = true; if (state.remoteModels.isEmpty()) model.loadModels() }, modifier = Modifier.fillMaxWidth()) {
                 Text(settings.modelId.ifBlank { "Choose a vision model" }, modifier = Modifier.weight(1f), maxLines = 2)
                 Icon(Icons.Outlined.ExpandMore, null)
             }
-        }
     }
     SettingsSection("Speech engine") {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

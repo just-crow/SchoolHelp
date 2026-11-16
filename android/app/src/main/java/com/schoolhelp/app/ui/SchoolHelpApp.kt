@@ -1,6 +1,11 @@
 package com.schoolhelp.app.ui
 
 import android.graphics.BitmapFactory
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
+import android.provider.MediaStore
 import android.os.SystemClock
 import android.view.Window
 import android.view.WindowManager
@@ -48,6 +53,7 @@ import com.schoolhelp.app.AppViewModel
 import com.schoolhelp.app.Screen
 import com.schoolhelp.app.UiState
 import com.schoolhelp.app.audio.PlaybackState
+import com.schoolhelp.app.audio.RecordingLanguage
 import com.schoolhelp.app.core.PlaybackAction
 import com.schoolhelp.app.core.TapSequence
 import com.schoolhelp.app.data.AiProvider
@@ -148,6 +154,7 @@ private fun HomeScreen(state: UiState, model: AppViewModel) {
         supportingText = { Text("Used with photos or by itself when solving. Saved until you clear it. Not read aloud as a separate note.") },
         minLines = 3, maxLines = 8, enabled = state.busy == null, modifier = Modifier.fillMaxWidth())
     if (state.settings.context.isNotEmpty()) TextButton(onClick = { model.settings(state.settings.copy(context = "")) }, enabled = state.busy == null) { Text("Clear context") }
+    TranscriptInput(state, model)
     if (image == null) {
         Surface(shape = RoundedCornerShape(24.dp), color = Sage, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -209,7 +216,8 @@ private fun HomeScreen(state: UiState, model: AppViewModel) {
 
         }
     }
-            Button(onClick = model::solve, enabled = state.busy == null && state.downloading == null && (state.photos.isNotEmpty() || state.settings.context.isNotBlank()),
+            Button(onClick = model::solve, enabled = state.busy == null && state.downloading == null &&
+                (state.photos.isNotEmpty() || state.settings.context.isNotBlank() || state.transcript.isNotBlank()),
                 modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(14.dp)) {
                 Icon(Icons.Outlined.AutoAwesome, null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(10.dp)); Text("Solve & prepare speech")
             }
@@ -218,7 +226,6 @@ private fun HomeScreen(state: UiState, model: AppViewModel) {
             Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 LinearProgressIndicator(Modifier.fillMaxWidth(), color = Forest, trackColor = Line)
                 Text(status, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                Text("You can cancel while the answer is being prepared.", style = MaterialTheme.typography.bodySmall, color = Muted)
                 TextButton(onClick = model::cancelWork) { Text("Cancel") }
             }
         }
@@ -251,6 +258,65 @@ private fun HomeScreen(state: UiState, model: AppViewModel) {
         Text("In listening mode, tap anywhere. Hold 1.5 seconds to restart; keep holding to 3 seconds to end and clear all photos. Your screen stays awake, even when paused.", style = MaterialTheme.typography.bodySmall, color = Muted)
     }
     if (crop && image != null) CropDialog(image, { crop = false }) { l, t, r, b -> model.cropImage(l, t, r, b); crop = false }
+}
+
+@Composable
+private fun TranscriptInput(state: UiState, model: AppViewModel) {
+    var language by rememberSaveable { mutableStateOf(RecordingLanguage.ENGLISH) }
+    var audio by rememberSaveable { mutableStateOf<Uri?>(null) }
+    val pickAudio = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) audio = uri
+    }
+    val recordAudio = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri = result.data?.data
+            if (uri != null) audio = uri
+            else model.error("The recorder did not return an audio file. Try Choose audio.")
+        }
+    }
+    val enabled = state.busy == null
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Audio transcript", style = MaterialTheme.typography.titleMedium)
+        Text("Recording language", style = MaterialTheme.typography.bodySmall, color = Muted)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            RecordingLanguage.entries.forEach { option ->
+                FilterChip(selected = language == option, onClick = { language = option },
+                    enabled = enabled, label = { Text(option.label) })
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(enabled = enabled, onClick = {
+                try {
+                    recordAudio.launch(Intent(MediaStore.Audio.Media.RECORD_SOUND_ACTION))
+                } catch (_: ActivityNotFoundException) {
+                    model.error("Record in your phone’s recorder app, then use Choose audio.")
+                }
+            }) { Text("Record audio") }
+            OutlinedButton(enabled = enabled, onClick = { pickAudio.launch("audio/*") }) { Text("Choose audio") }
+        }
+        Text("Audio up to 10 MB is sent to OpenRouter for transcription and uses your credits.", style = MaterialTheme.typography.bodySmall, color = Muted)
+        if (!state.hasKey) TextButton(enabled = enabled, onClick = { model.screen(Screen.SETTINGS) }) {
+            Text("Set up OpenRouter key")
+        }
+        audio?.let { uri ->
+            Text("Audio selected", style = MaterialTheme.typography.bodySmall, color = Muted)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(enabled = enabled && state.hasKey, onClick = { model.transcribe(uri, language) }) {
+                    Text(if (state.transcript.isBlank()) "Transcribe audio" else "Replace transcript")
+                }
+                TextButton(enabled = enabled, onClick = { audio = null }) { Text("Remove audio") }
+            }
+        }
+        if (state.transcript.isNotEmpty()) {
+            OutlinedTextField(value = state.transcript, onValueChange = model::updateTranscript,
+                label = { Text("Transcript for the AI") }, minLines = 3, maxLines = 8,
+                supportingText = { Text("Review and edit the transcript before solving. It is sent separately from typed context.") },
+                enabled = enabled, modifier = Modifier.fillMaxWidth())
+            TextButton(enabled = enabled, onClick = { model.updateTranscript(""); model.saveSession() }) {
+                Text("Clear transcript")
+            }
+        }
+    }
 }
 
 @Composable
