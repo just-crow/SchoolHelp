@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.schoolhelp.app.core.ApiKey
+import com.schoolhelp.app.data.openRouterCreditMessage
 import com.schoolhelp.app.data.useResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -65,7 +66,7 @@ class OpenRouterTranscription(
             check(response.isSuccessful) {
                 when (response.code) {
                     401, 403 -> "OpenRouter rejected the request. Check your saved API key and permissions."
-                    402 -> "Your OpenRouter account needs credits to transcribe audio."
+                    402 -> response.openRouterCreditMessage()
                     413 -> "OpenRouter could not accept this recording size. Try a shorter clip."
                     429 -> "OpenRouter is busy or your rate limit was reached. Try again shortly."
                     else -> "OpenRouter could not transcribe the recording (${response.code}). Try a shorter WAV or M4A file."

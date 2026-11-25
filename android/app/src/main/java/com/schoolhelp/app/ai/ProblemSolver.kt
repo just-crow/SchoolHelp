@@ -11,6 +11,7 @@ import com.schoolhelp.app.core.Solution
 import com.schoolhelp.app.core.ApiKey
 import com.schoolhelp.app.core.SolutionParser
 import com.schoolhelp.app.data.AppSettings
+import com.schoolhelp.app.data.openRouterCreditMessage
 import com.schoolhelp.app.data.useResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -108,7 +109,7 @@ class OpenRouterSolver(
     suspend fun testKey(key: String) = withContext(Dispatchers.IO) {
         val cleanKey = ApiKey.normalize(key)
         client.newCall(Request.Builder().url("${baseUrl}key").header("Authorization", "Bearer $cleanKey").build())
-            .useResponse { response -> checkStatus(response.code) }
+            .useResponse { response -> checkStatus(response) }
     }
 
     suspend fun solve(image: File, key: String, settings: AppSettings): Solution = solve(listOf(image), key, settings)
@@ -140,7 +141,7 @@ class OpenRouterSolver(
                 .header("Authorization", "Bearer $cleanKey").header("X-Title", "SchoolHelp")
                 .post(body.toString().toRequestBody("application/json".toMediaType())).build()
             return client.newCall(request).useResponse { response ->
-                checkStatus(response.code)
+                checkStatus(response)
                 val json = JSONObject(response.body?.string() ?: error("The model returned no answer."))
                 val choice = json.getJSONArray("choices").getJSONObject(0)
                 choice.getJSONObject("message").getString("content")
@@ -156,11 +157,12 @@ class OpenRouterSolver(
         SolutionParser.requireListeningText(solution)
     }
 
-    private fun checkStatus(code: Int) {
+    private fun checkStatus(response: okhttp3.Response) {
+        val code = response.code
         check(code in 200..299) {
             when (code) {
                 401, 403 -> "OpenRouter rejected the API key. Check it in settings."
-                402 -> "Your OpenRouter account needs credits."
+                402 -> response.openRouterCreditMessage()
                 429 -> "OpenRouter is busy or your rate limit was reached. Try again shortly."
                 else -> "OpenRouter request failed ($code). Try again or choose another model."
             }

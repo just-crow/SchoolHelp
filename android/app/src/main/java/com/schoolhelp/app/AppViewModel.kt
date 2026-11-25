@@ -415,6 +415,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: CancellationException) { output?.delete(); throw e }
             catch (e: OutOfMemoryError) { CrashDiagnostics.record(getApplication(),"preparation-memory",e); output?.delete(); error("This phone ran out of memory. Close other apps or use OpenRouter.") }
             catch (e: LinkageError) { CrashDiagnostics.record(getApplication(),"preparation-native",e); output?.delete(); error("The local AI engine is not supported on this device. Try a recent 64-bit Android phone.") }
+            catch (e: java.io.IOException) {
+                CrashDiagnostics.record(getApplication(), "preparation-network", e)
+                output?.delete()
+                error(if (state.value.solution != null) "The connection dropped while preparing speech. Your answers are saved. Use Retry speech from saved answers."
+                    else "The connection dropped while solving. Check your connection and try again.")
+            }
             catch (e: Exception) { CrashDiagnostics.record(getApplication(),"preparation",e); output?.delete(); error(e.message ?: "Something went wrong. Please try again.") }
             finally {
                 if (state.value.questionClips.isEmpty()) questionClips.forEach { it.delete() }

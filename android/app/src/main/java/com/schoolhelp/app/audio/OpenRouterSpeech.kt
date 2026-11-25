@@ -2,6 +2,7 @@ package com.schoolhelp.app.audio
 
 import com.schoolhelp.app.core.ApiKey
 import com.schoolhelp.app.data.AppSettings
+import com.schoolhelp.app.data.openRouterCreditMessage
 import com.schoolhelp.app.data.useResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -62,7 +63,7 @@ class OpenRouterSpeech(
                 check(response.isSuccessful) {
                     when (response.code) {
                         401, 403 -> "OpenRouter rejected the API key. Check it in settings."
-                        402 -> "Your OpenRouter account needs credits."
+                        402 -> response.openRouterCreditMessage()
                         400, 404, 422 -> {
                             val detail = runCatching {
                                 JSONObject(response.peekBody(8192).string()).optJSONObject("error")?.optString("message")

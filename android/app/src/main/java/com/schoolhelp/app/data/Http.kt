@@ -39,3 +39,18 @@ suspend fun <T> Call.useResponse(block: suspend (Response) -> T): T = coroutineS
         cancellation.cancel()
     }
 }
+
+/** Use only known error codes so upstream messages cannot expose request details. */
+internal fun Response.openRouterCreditMessage(): String {
+    val metadata = runCatching {
+        org.json.JSONObject(peekBody(8192).string()).optJSONObject("error")?.optJSONObject("metadata")
+    }.getOrNull()
+    return when {
+        metadata?.optString("limit_source") == "openrouter_key_limit" ->
+            "The OpenRouter key reached its spending limit. Check this key's limit in OpenRouter."
+        metadata?.optString("limit_source") == "openrouter_in_flight_budget" ||
+            metadata?.optString("reason") == "in_flight_budget_exhausted" ->
+            "OpenRouter temporarily limited concurrent spending. Wait for other requests to finish, then retry."
+        else -> "OpenRouter rejected the request for budget reasons (402). Check the saved key's spending limit and your OpenRouter balance."
+    }
+}
