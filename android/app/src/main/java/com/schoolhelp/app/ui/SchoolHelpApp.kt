@@ -398,8 +398,8 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
     val perform: (PlaybackAction) -> Unit = { action ->
         model.playback.act(action)
         feedback = when (action) {
-            PlaybackAction.REWIND -> if (manual) "Previous question" else "Back 5 seconds"
-            PlaybackAction.FORWARD -> if (manual) "Next question" else "Forward 5 seconds"
+            PlaybackAction.REWIND -> if (manual) "Previous segment" else "Back 5 seconds"
+            PlaybackAction.FORWARD -> if (manual) "Next segment" else "Forward 5 seconds"
             PlaybackAction.TOGGLE -> if (manual) "Repeating segment" else if (currentPlayback.playing) "Paused" else "Playing"
         }
     }
@@ -430,11 +430,11 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
         BoxWithConstraints(Modifier.fillMaxSize().background(Night)
             .semantics(mergeDescendants = !manual) {
                 role = Role.Button
-                contentDescription = if (manual) "Question ${playback.questionIndex + 1} of ${playback.questionCount}. One tap goes back. Two taps go forward. Three taps repeat this segment." else "Listening mode. ${if (playback.playing) "Playing" else "Paused"}. One tap rewinds five seconds. Two taps skip forward. Three taps play or pause. Hold one and a half seconds to restart. Keep holding to three seconds to finish this item."
+                contentDescription = if (manual) "Segment ${playback.questionIndex + 1} of ${playback.questionCount}. One tap goes back. Two taps go forward. Three taps repeat this segment." else "Listening mode. ${if (playback.playing) "Playing" else "Paused"}. One tap rewinds five seconds. Two taps skip forward. Three taps play or pause. Hold one and a half seconds to restart. Keep holding to three seconds to finish this item."
                 onClick(label = if (manual) "Repeat segment" else "Play or pause") { perform(PlaybackAction.TOGGLE); true }
                 customActions = listOf(
-                    CustomAccessibilityAction(if (manual) "Previous question" else "Rewind five seconds") { perform(PlaybackAction.REWIND); true },
-                    CustomAccessibilityAction(if (manual) "Next question" else "Forward five seconds") { perform(PlaybackAction.FORWARD); true },
+                    CustomAccessibilityAction(if (manual) "Previous segment" else "Rewind five seconds") { perform(PlaybackAction.REWIND); true },
+                    CustomAccessibilityAction(if (manual) "Next segment" else "Forward five seconds") { perform(PlaybackAction.FORWARD); true },
                     CustomAccessibilityAction("Restart recording") { model.playback.restart(); true },
                     CustomAccessibilityAction("End session and clear photo") { model.terminateSession(); true },
                 )
@@ -481,7 +481,7 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
                 Text(if (waiting) "Waiting for an answer" else if (!playback.ready) "Getting ready…" else if (manual && playback.ended && playback.questionIndex + 1 < playback.questionCount) "Waiting for you" else if (playback.ended) "All caught up." else if (playback.playing) "Just listen." else "Take your time.",
                     fontFamily = Editorial, fontSize = if (compact) 28.sp else 38.sp, color = Cream)
                 Spacer(Modifier.height(12.dp))
-                Text(if (waiting) "New answers will appear here when they are ready." else if (manual) "Question ${playback.questionIndex + 1} of ${playback.questionCount}" else if (playback.ended) "Triple tap to listen again" else if (playback.playing) "Triple tap anywhere to pause" else "Triple tap anywhere to play",
+                Text(if (waiting) "New answers will appear here when they are ready." else if (manual) "Segment ${playback.questionIndex + 1} of ${playback.questionCount}" else if (playback.ended) "Triple tap to listen again" else if (playback.playing) "Triple tap anywhere to pause" else "Triple tap anywhere to play",
                     style = MaterialTheme.typography.bodyMedium, color = Cream.copy(alpha = .5f))
                 Spacer(Modifier.height(if (compact) 12.dp else 40.dp))
                 if (waiting) {

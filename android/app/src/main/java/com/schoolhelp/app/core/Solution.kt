@@ -15,6 +15,23 @@ data class Problem(
 )
 
 data class Solution(val problems: List<Problem>) {
+    fun manualSpeechSegments(includeExplanations: Boolean, language: String): List<String> =
+        problems.flatMap { problem ->
+            val full = problem.spokenText.ifBlank { problem.answer + if (includeExplanations) " " + problem.explanation else "" }
+            val proposed = problem.speechSegments.map { it.text.trim() }.filter { it.isNotEmpty() }
+            val whitespace = Regex("\\s+")
+            val segments = when {
+                problem.unreadable -> listOf(problem.answer)
+                proposed.isNotEmpty() && proposed.joinToString(" ").replace(whitespace, " ") ==
+                    full.trim().replace(whitespace, " ") -> proposed
+                else -> full.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
+            }
+            val label = problem.spokenLabel.trim().trimEnd('.', ' ').ifBlank { problem.number }
+            segments.mapIndexed { index, segment ->
+                (if (index == 0) "$label. " else "") + SpeechText.clean(segment, language)
+            }.ifEmpty { listOf(Solution(listOf(problem)).speech(includeExplanations, language)) }
+        }.also { require(it.size in 1..100) { "Ask for fewer pause points and solve again." } }
+
     fun speech(includeExplanations: Boolean, language: String): String = problems.joinToString("\n\n") {
         val label = it.spokenLabel.trim().trimEnd('.', ' ').ifBlank { it.number }
         if (it.unreadable) "$label. ${SpeechText.clean(it.answer, language)}"
@@ -76,8 +93,10 @@ object SolutionParser {
         })
     }
 
-    fun prompt(language: String, explanations: Boolean, writingWpm: Int = 0): String = """
-        ${WritingPauses.instruction(writingWpm)}
+    fun prompt(language: String, explanations: Boolean, writingWpm: Int = 0, manualPauses: Boolean = false): String = """
+        ${if (manualPauses) """
+        Manual pauses are enabled. Return speechSegments for every problem. Each segment ends at a point where the listener should wait indefinitely for a manual command. Follow the typed Context instructions about where to put pauses, such as after each sentence, after a named paragraph, or after every two paragraphs. Use one segment per paragraph for essays and one per question for short answers by default. Preserve the complete answer in order. Copy the exact words and punctuation from spokenText into consecutive speechSegments text fields, omitting only whitespace at segment boundaries. Use plain-text line breaks between paragraphs in spokenText. Do not include labels, pause announcements, or durations in segments. Use an empty writingText and null pauseSeconds. Return at most 100 segments in total.
+        """.trimIndent() else WritingPauses.instruction(writingWpm)}
         Read and solve the school problems in the supplied photos, in their original page order. If no photos are attached, answer the task from the typed context or the separately supplied transcript in the selected output language. Do not invent a paper, ask for an image, or add page announcements for a text-only task.
         The user has explicitly chosen the output language: ${language.trim().take(60)}. Do not detect or choose an output language from the photos. Write every answer, explanation, spokenText and spokenLabel in this selected language, even if the photographed questions use another language. Only preserve foreign words when essential to the task, such as a requested translation or quotation.
         Include spokenLabel for every problem: announce its starting page and question number entirely in the user-selected output language. Spell the numbers in words in that language. All spoken content, including labels, placement instructions and unreadable-photo messages, must use the selected language. spokenText must not repeat spokenLabel.

@@ -383,11 +383,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val plan = if(config.writingPauses) com.schoolhelp.app.core.WritingPauses.plan(solution,config.writingWpm,config.explanations,config.language) else emptyList()
                 val spokenText = if(plan.isNotEmpty()) plan.joinToString("\n\n") { it.text } else solution.speech(config.explanations, config.language)
                 if (config.manualPauses) {
-                    solution.problems.forEachIndexed { index, problem ->
-                        mutable.update { it.copy(busy = "Preparing question ${index + 1} of ${solution.problems.size}") }
+                    val segments = solution.manualSpeechSegments(config.explanations, config.language)
+                    segments.forEachIndexed { index, text ->
+                        mutable.update { it.copy(busy = "Preparing segment ${index + 1} of ${segments.size}") }
                         val clip = File(sessions.directory, "question-${java.util.UUID.randomUUID()}.${if (cloudSpeech) "mp3" else "wav"}")
                         questionClips.add(clip)
-                        val text = Solution(listOf(problem)).speech(config.explanations, config.language)
                         if (cloudSpeech) remoteSpeech.generate(text, preferences.apiKey(), config, clip)
                         else speech.generate(text, config.language, com.schoolhelp.app.core.SpeechSpeed.generation(config.rate), clip)
                     }

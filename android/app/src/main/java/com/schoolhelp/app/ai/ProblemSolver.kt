@@ -56,7 +56,7 @@ class LocalProblemSolver {
             currentCoroutineContext().ensureActive()
             engine.createConversation(ConversationConfig()).use { conversation ->
                 val result = StringBuilder()
-                val content = mutableListOf<Content>(Content.Text(SolutionParser.prompt(settings.outputLanguage, settings.explanations, if(settings.writingPauses) settings.writingWpm else 0)))
+                val content = mutableListOf<Content>(Content.Text(SolutionParser.prompt(settings.outputLanguage, settings.explanations, if(settings.writingPauses) settings.writingWpm else 0, settings.manualPauses)))
                 if (transcript.isNotBlank()) content += Content.Text(TRANSCRIPT_RULES)
                 if (settings.context.isNotBlank()) content += Content.Text("Additional context from the user (use for solving, do not read this note aloud):\n${settings.context.trim().take(8000)}")
                 if (transcript.isNotBlank()) content += Content.Text(transcriptPart(transcript))
@@ -129,7 +129,7 @@ class OpenRouterSolver(
                 .put(JSONObject().put("type", "image_url").put("image_url", JSONObject().put("url",
                     "data:image/jpeg;base64,${Base64.getEncoder().encodeToString(image.readBytes())}")))
         }
-        val prompt = SolutionParser.prompt(settings.outputLanguage, settings.explanations, if (settings.writingPauses) settings.writingWpm else 0)
+        val prompt = SolutionParser.prompt(settings.outputLanguage, settings.explanations, if (settings.writingPauses) settings.writingWpm else 0, settings.manualPauses)
         val body = JSONObject().put("model", settings.modelId)
             .put("messages", JSONArray()
                 .put(JSONObject().put("role", "system").put("content", if (transcript.isBlank()) prompt else "$prompt\n$TRANSCRIPT_RULES"))

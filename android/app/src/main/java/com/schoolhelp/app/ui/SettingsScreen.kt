@@ -104,7 +104,7 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
         SettingSwitch("Include reasoning", "Add brief justification or working, as you would on a test.", settings.explanations) {
             model.settings(settings.copy(explanations = it))
         }
-        SettingSwitch("Manual question pauses", "Wait after each question until you choose the next one. Applies to new recordings in your own workspace.", settings.manualPauses) {
+        SettingSwitch("Manual question pauses", "Wait after each question or essay paragraph. Use Context to choose different pause points. Applies to new recordings in your own workspace.", settings.manualPauses) {
             model.settings(settings.copy(manualPauses = it))
         }
         if (!settings.manualPauses) {
