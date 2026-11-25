@@ -91,6 +91,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val appScope = (application as SchoolHelpApplication).scope
     val sharing = (application as SchoolHelpApplication).sharing
     private var work: Job? = null
+    private var pendingManualSpeech: ManualSpeechProgress? = null
+
+    private data class ManualSpeechProgress(
+        val config: AppSettings,
+        val segments: List<String>,
+        val clips: MutableList<File> = mutableListOf(),
+    )
+
+    private fun discardPendingManualSpeech() {
+        pendingManualSpeech?.clips?.forEach { it.delete() }
+        pendingManualSpeech = null
+    }
     private var download: Job? = null
 
     init {
@@ -252,6 +264,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun invalidateAnswer() {
+        discardPendingManualSpeech()
         playback.clear()
         state.value.questionClips.forEach { it.delete() }
         state.value.recording?.delete()
@@ -302,6 +315,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearImage() {
+        discardPendingManualSpeech()
         playback.clear()
         state.value.photos.forEach { it.delete() }
         state.value.questionClips.forEach { it.delete() }
@@ -363,6 +377,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val questionClips = mutableListOf<File>()
             try {
                 CrashDiagnostics.stage("answer preparation")
+                if (cachedSolution == null || !config.manualPauses || config.speechProvider != AiProvider.OPENROUTER) {
+                    discardPendingManualSpeech()
+                }
                 playback.clear()
                 state.value.questionClips.forEach { it.delete() }
                 state.value.recording?.delete()
@@ -384,7 +401,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val spokenText = if(plan.isNotEmpty()) plan.joinToString("\n\n") { it.text } else solution.speech(config.explanations, config.language)
                 if (config.manualPauses) {
                     val segments = solution.manualSpeechSegments(config.explanations, config.language)
-                    segments.forEachIndexed { index, text ->
+                    val progress = if (cloudSpeech) {
+                        val saved = pendingManualSpeech
+                        if (saved != null && saved.config == config && saved.segments == segments && saved.clips.all { it.isFile }) saved
+                        else {
+                            discardPendingManualSpeech()
+                            ManualSpeechProgress(config, segments).also { pendingManualSpeech = it }
+                        }
+                    } else null
+                    progress?.let { questionClips.addAll(it.clips) }
+                    for (index in questionClips.size until segments.size) {
+                        val text = segments[index]
                         mutable.update { it.copy(busy = "Preparing segment ${index + 1} of ${segments.size}") }
                         val clip = File(sessions.directory, "question-${java.util.UUID.randomUUID()}.${if (cloudSpeech) "mp3" else "wav"}")
                         val generatedClip = if (cloudSpeech) {
@@ -393,6 +420,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         }
                         else speech.generate(text, config.language, com.schoolhelp.app.core.SpeechSpeed.generation(config.rate), clip)
                         questionClips.add(generatedClip)
+                        progress?.clips?.add(generatedClip)
                     }
                     output = questionClips.first()
                 } else if(config.writingPauses) {
@@ -418,6 +446,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     autoplay = (getApplication<Application>() as SchoolHelpApplication).visible)
                 if(!(getApplication<Application>() as SchoolHelpApplication).visible) com.schoolhelp.app.sharing.SharingNotifications.ready(getApplication(), "Your answers are ready", shared=false)
                 mutable.update { it.copy(recording = output, questionClips = questionClips.toList(), recordingSpeed = playbackSpeed, savedPositionMs = 0, screen = Screen.LISTEN) }
+                pendingManualSpeech = null
             } catch (e: CancellationException) { output?.delete(); throw e }
             catch (e: OutOfMemoryError) { CrashDiagnostics.record(getApplication(),"preparation-memory",e); output?.delete(); error("This phone ran out of memory. Close other apps or use OpenRouter.") }
             catch (e: LinkageError) { CrashDiagnostics.record(getApplication(),"preparation-native",e); output?.delete(); error("The local AI engine is not supported on this device. Try a recent 64-bit Android phone.") }
@@ -429,7 +458,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             catch (e: Exception) { CrashDiagnostics.record(getApplication(),"preparation",e); output?.delete(); error(e.message ?: "Something went wrong. Please try again.") }
             finally {
-                if (state.value.questionClips.isEmpty()) questionClips.forEach { it.delete() }
+                if (state.value.questionClips.isEmpty()) {
+                    val retained = pendingManualSpeech?.clips.orEmpty().toSet()
+                    questionClips.filterNot { it in retained }.forEach { it.delete() }
+                    if (retained.isNotEmpty() && state.value.error != null) {
+                        mutable.update { it.copy(error = "${it.error} ${retained.size} audio segments are saved for Retry speech.") }
+                    }
+                }
                 saveSession()
                 runCatching {database.records().delete("generation-job")}.onFailure {CrashDiagnostics.record(getApplication(),"preparation-cleanup",it)}
                 mutable.update {it.copy(busy=null)}

@@ -80,6 +80,13 @@ internal fun Response.openRouterCreditMessage(operation: String): String {
                 val retry = retryAfter?.let { "Try again in $it seconds." } ?: "Try again shortly."
                 "OpenRouter blocked $operation with a temporary spending limit (402). $retry"
             }
-        else -> "OpenRouter rejected the request for budget reasons (402). Check the saved key's spending limit and your OpenRouter balance."
+        metadata?.optString("limit_source") == "openrouter_credits" ->
+            "OpenRouter reports insufficient account credits for $operation (402)."
+        else -> {
+            val reference = (header("X-Request-Id") ?: header("X-Generation-Id"))
+                ?.takeIf { it.matches(Regex("[A-Za-z0-9_-]{8,128}")) }
+                ?.let { " Request reference: $it." }.orEmpty()
+            "OpenRouter blocked $operation (402) without specifying which budget limit was hit. Check the saved key's limit and the OpenRouter account balance.$reference"
+        }
     }
 }

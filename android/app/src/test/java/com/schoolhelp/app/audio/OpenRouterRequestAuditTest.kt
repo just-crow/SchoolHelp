@@ -18,6 +18,23 @@ class OpenRouterRequestAuditTest {
     @get:Rule val files = TemporaryFolder()
     private val settings = AppSettings(speechModelId = "fixture/tts", speechVoice = "voice")
 
+    @Test fun unspecified402ShowsTheSpeechStageAndStopsWithoutRetrying() = runBlocking {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse().setResponseCode(402).setHeader("X-Request-Id", "fixture-request-42")
+                .setBody("""{"error":{"message":"private upstream detail"}}"""))
+            val service = OpenRouterSpeech(OkHttpClient(), server.url("/").toString())
+            val failure = runCatching {
+                service.generate("Test speech.", "fixture", settings, files.root.resolve("blocked.mp3"),
+                    retryTemporaryBudget = true)
+            }.exceptionOrNull()
+            val message = failure?.message.orEmpty()
+            assertTrue(message.contains("speech generation (402)"))
+            assertTrue(message.contains("fixture-request-42"))
+            assertFalse(message.contains("private upstream detail"))
+            assertEquals(1, server.requestCount)
+        }
+    }
+
     @Test fun segmentedSpeechWaitsThenRetriesOnlyTheRejectedSegment() = runBlocking {
         MockWebServer().use { server ->
             repeat(2) {
