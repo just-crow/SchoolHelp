@@ -389,6 +389,7 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
     var feedback by remember { mutableStateOf("Ready when you are") }
     var sounded by rememberSaveable(state.sharedItemId ?: state.recording?.path) { mutableStateOf(false) }
     val currentPlayback by rememberUpdatedState(playback)
+    val manual = playback.questionCount > 0
     val sharedQueue by model.sharing.state.collectAsStateWithLifecycle()
     val waiting = state.sharedListening && state.sharedItemId == null
     LaunchedEffect(state.sharedListening, state.sharedItemId, sharedQueue.ready) {
@@ -397,8 +398,8 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
     val perform: (PlaybackAction) -> Unit = { action ->
         model.playback.act(action)
         feedback = when (action) {
-            PlaybackAction.REWIND -> "Back 5 seconds"
-            PlaybackAction.FORWARD -> "Forward 5 seconds"
+            PlaybackAction.REWIND -> if (manual) "Previous question" else "Back 5 seconds"
+            PlaybackAction.FORWARD -> if (manual) "Next question" else "Forward 5 seconds"
             PlaybackAction.TOGGLE -> if (currentPlayback.playing) "Paused" else "Playing"
         }
     }
@@ -427,18 +428,18 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
     }
     LaunchedEffect(Unit) { while (true) { model.playback.refresh(); delay(200) } }
         BoxWithConstraints(Modifier.fillMaxSize().background(Night)
-            .semantics(mergeDescendants = true) {
+            .semantics(mergeDescendants = !manual) {
                 role = Role.Button
-                contentDescription = "Listening mode. ${if (playback.playing) "Playing" else "Paused"}. One tap rewinds five seconds. Two taps skip forward. Three taps play or pause. Hold one and a half seconds to restart. Keep holding to three seconds to finish this item."
+                contentDescription = if (manual) "Question ${playback.questionIndex + 1} of ${playback.questionCount}. One tap goes back. Two taps go forward. Three taps play or pause." else "Listening mode. ${if (playback.playing) "Playing" else "Paused"}. One tap rewinds five seconds. Two taps skip forward. Three taps play or pause. Hold one and a half seconds to restart. Keep holding to three seconds to finish this item."
                 onClick(label = "Play or pause") { perform(PlaybackAction.TOGGLE); true }
                 customActions = listOf(
-                    CustomAccessibilityAction("Rewind five seconds") { perform(PlaybackAction.REWIND); true },
-                    CustomAccessibilityAction("Forward five seconds") { perform(PlaybackAction.FORWARD); true },
+                    CustomAccessibilityAction(if (manual) "Previous question" else "Rewind five seconds") { perform(PlaybackAction.REWIND); true },
+                    CustomAccessibilityAction(if (manual) "Next question" else "Forward five seconds") { perform(PlaybackAction.FORWARD); true },
                     CustomAccessibilityAction("Restart recording") { model.playback.restart(); true },
                     CustomAccessibilityAction("End session and clear photo") { model.terminateSession(); true },
                 )
             }
-            .pointerInput(taps) {
+            .pointerInput(taps, manual) {
                 awaitEachGesture {
                     awaitFirstDown().consume()
                     pending?.cancel()
@@ -477,10 +478,10 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
                     Icon(if (playback.playing) Icons.Outlined.GraphicEq else Icons.Outlined.PlayArrow, null, tint = Cream, modifier = Modifier.size(48.dp))
                 }
                 Spacer(Modifier.height(if (compact) 12.dp else 32.dp))
-                Text(if (waiting) "Waiting for an answer" else if (!playback.ready) "Getting ready…" else if (playback.ended) "All caught up." else if (playback.playing) "Just listen." else "Take your time.",
+                Text(if (waiting) "Waiting for an answer" else if (!playback.ready) "Getting ready…" else if (manual && playback.ended && playback.questionIndex + 1 < playback.questionCount) "Waiting for you" else if (playback.ended) "All caught up." else if (playback.playing) "Just listen." else "Take your time.",
                     fontFamily = Editorial, fontSize = if (compact) 28.sp else 38.sp, color = Cream)
                 Spacer(Modifier.height(12.dp))
-                Text(if (waiting) "New answers will appear here when they are ready." else if (playback.ended) "Triple tap to listen again" else if (playback.playing) "Triple tap anywhere to pause" else "Triple tap anywhere to play",
+                Text(if (waiting) "New answers will appear here when they are ready." else if (manual) "Question ${playback.questionIndex + 1} of ${playback.questionCount}" else if (playback.ended) "Triple tap to listen again" else if (playback.playing) "Triple tap anywhere to pause" else "Triple tap anywhere to play",
                     style = MaterialTheme.typography.bodyMedium, color = Cream.copy(alpha = .5f))
                 Spacer(Modifier.height(if (compact) 12.dp else 40.dp))
                 if (waiting) {
@@ -501,8 +502,19 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
                         modifier = Modifier.padding(top = 8.dp).semantics { liveRegion = LiveRegionMode.Polite })
                 }
                 Spacer(Modifier.weight(1f))
+                if (manual) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(enabled = playback.questionIndex > 0, onClick = { model.playback.moveQuestion(-1) }) {
+                        Text("Previous", color = Cream.copy(alpha = if (playback.questionIndex > 0) 1f else .35f))
+                    }
+                    TextButton(enabled = playback.ready, onClick = model.playback::restart) {
+                        Text("Repeat", color = Cream)
+                    }
+                    TextButton(enabled = playback.questionIndex + 1 < playback.questionCount, onClick = { model.playback.moveQuestion(1) }) {
+                        Text("Next", color = Cream.copy(alpha = if (playback.questionIndex + 1 < playback.questionCount) 1f else .35f))
+                    }
+                }
                 if (!waiting) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    GestureHint("1 tap", "−5 seconds", true); GestureHint("2 taps", "+5 seconds", true); GestureHint("3 taps", "Play / pause", true)
+                    GestureHint("1 tap", if (manual) "Previous" else "−5 seconds", true); GestureHint("2 taps", if (manual) "Next" else "+5 seconds", true); GestureHint("3 taps", "Play / pause", true)
                 }
                 HorizontalDivider(Modifier.padding(vertical = if (compact) 12.dp else 24.dp), color = Cream.copy(alpha = .1f))
                 Text(if (waiting) "Use Back to return to sharing settings" else "HOLD 1.5 SECONDS TO RESTART · 3 SECONDS TO END", color = Cream.copy(alpha = .4f), style = MaterialTheme.typography.bodySmall,

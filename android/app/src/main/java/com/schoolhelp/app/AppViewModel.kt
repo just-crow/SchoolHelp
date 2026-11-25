@@ -58,6 +58,8 @@ data class UiState(
     val speechModels: List<SpeechModel> = emptyList(),
     val loadingSpeechModels: Boolean = false,
     val transcript: String = "",
+    val questionClips: List<File> = emptyList(),
+    val questionIndex: Int = 0,
 ) {
     val image: File? get() = photos.getOrNull(selectedPhoto)
     companion object { const val MAX_PHOTOS = 10 }
@@ -78,7 +80,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val mutable = MutableStateFlow(UiState(settings = preferences.load(), installed = models.installedIds(), hasKey = preferences.hasApiKey(),
         photos = restored.photos, selectedPhoto = restored.selectedPhoto, solution = restored.solution,
         recording = restored.recording, recordingSpeed = restored.recordingSpeed, savedPositionMs = restored.positionMs,
-        transcript = restored.transcript,
+        transcript = restored.transcript, questionClips = restored.questionClips, questionIndex = restored.questionIndex,
         notice = if(database.records().get("generation-job") != null) {
             if(restored.solution != null) "Speech preparation was interrupted. Retry speech from your saved answers."
             else "Preparation was interrupted. Your photos are saved; solve them again when ready."
@@ -94,7 +96,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     init {
         if (sharing.wasSharedListening()) {
             appScope.launch { openShared() }
-        } else if (restored.listening) restored.recording?.let { playback.load(it, restored.recordingSpeed, restored.positionMs) }
+        } else if (restored.listening) restored.recording?.let { loadOwnRecording(state.value, it) }
     }
 
     fun saveSession() {
@@ -104,12 +106,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         val position = if (playback.hasRecording) playback.state.value.positionMs else current.savedPositionMs
-        mutable.update { it.copy(savedPositionMs = position) }
+        val index = if (playback.state.value.questionCount > 0) playback.state.value.questionIndex else current.questionIndex
+        mutable.update { it.copy(savedPositionMs = position, questionIndex = index) }
         try {
             sessions.save(SavedSession(current.photos, current.selectedPhoto, current.solution,
                 current.recording, current.recordingSpeed,
                 position,
-                current.screen == Screen.LISTEN, current.transcript))
+                current.screen == Screen.LISTEN, current.transcript, current.questionClips, index))
         } catch (e: Exception) { error("Could not save this session. Free some phone storage and try again.") }
     }
 
@@ -250,8 +253,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun invalidateAnswer() {
         playback.clear()
+        state.value.questionClips.forEach { it.delete() }
         state.value.recording?.delete()
-        mutable.update { it.copy(solution = null, recording = null, savedPositionMs = 0, error = null) }
+        mutable.update { it.copy(solution = null, recording = null, questionClips = emptyList(), questionIndex = 0, savedPositionMs = 0, error = null) }
     }
 
     fun removeImage() {
@@ -300,8 +304,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun clearImage() {
         playback.clear()
         state.value.photos.forEach { it.delete() }
+        state.value.questionClips.forEach { it.delete() }
         state.value.recording?.delete()
-        mutable.update { it.copy(photos = emptyList(), selectedPhoto = 0, solution = null, recording = null, savedPositionMs = 0, error = null) }
+        mutable.update { it.copy(photos = emptyList(), selectedPhoto = 0, solution = null, recording = null, questionClips = emptyList(), questionIndex = 0, savedPositionMs = 0, error = null) }
         saveSession()
     }
 
@@ -327,7 +332,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             error("Add a photo, type context, or include a transcript first."); return
         }
         val cachedSolution = if(reuseSolution) snapshot.solution else null
-        val config = snapshot.settings
+        val config = snapshot.settings.let { if (it.manualPauses) it.copy(writingPauses = false) else it }
         if (config.outputLanguage.isBlank()) { error("Enter an answer language before solving."); return }
         if (snapshot.downloading != null) { error("Wait for the model download to finish first."); return }
         if (config.speechProvider == AiProvider.LOCAL && !models.installed(ModelCatalog.voice(config.language))) {
@@ -355,11 +360,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         work = appScope.launch {
             var output: File? = null
+            val questionClips = mutableListOf<File>()
             try {
                 CrashDiagnostics.stage("answer preparation")
                 playback.clear()
+                state.value.questionClips.forEach { it.delete() }
                 state.value.recording?.delete()
-                mutable.update { it.copy(busy = if (config.provider == AiProvider.LOCAL) "Reading and solving on your phone" else "Reading and solving with OpenRouter", error = null, solution = cachedSolution, recording = null) }
+                mutable.update { it.copy(busy = if (config.provider == AiProvider.LOCAL) "Reading and solving on your phone" else "Reading and solving with OpenRouter", error = null, solution = cachedSolution, recording = null, questionClips = emptyList(), questionIndex = 0) }
                 mutable.update { it.copy(savedPositionMs = 0) }
                 saveSession()
                 mutable.update { it.copy(busy = if (photos.isEmpty()) "Working on your text request" else "Reading ${photos.size} page${if (photos.size == 1) "" else "s"} together") }
@@ -375,7 +382,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val playbackSpeed = com.schoolhelp.app.core.SpeechSpeed.playback(config.rate, cloudSpeech)
                 val plan = if(config.writingPauses) com.schoolhelp.app.core.WritingPauses.plan(solution,config.writingWpm,config.explanations,config.language) else emptyList()
                 val spokenText = if(plan.isNotEmpty()) plan.joinToString("\n\n") { it.text } else solution.speech(config.explanations, config.language)
-                if(config.writingPauses) {
+                if (config.manualPauses) {
+                    solution.problems.forEachIndexed { index, problem ->
+                        mutable.update { it.copy(busy = "Preparing question ${index + 1} of ${solution.problems.size}") }
+                        val clip = File(sessions.directory, "question-${java.util.UUID.randomUUID()}.${if (cloudSpeech) "mp3" else "wav"}")
+                        questionClips.add(clip)
+                        val text = Solution(listOf(problem)).speech(config.explanations, config.language)
+                        if (cloudSpeech) remoteSpeech.generate(text, preferences.apiKey(), config, clip)
+                        else speech.generate(text, config.language, com.schoolhelp.app.core.SpeechSpeed.generation(config.rate), clip)
+                    }
+                    output = questionClips.first()
+                } else if(config.writingPauses) {
                     output = File(sessions.directory,"answer-${java.util.UUID.randomUUID()}.m4a")
                     output = com.schoolhelp.app.audio.WritingAudio.generate(getApplication(),plan,playbackSpeed,output,cueSounds=config.writingPauseSounds) { text, target, index, total ->
                         CrashDiagnostics.stage("speech part $index of $total")
@@ -387,17 +404,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 else speech.generate(spokenText, config.language, com.schoolhelp.app.core.SpeechSpeed.generation(config.rate), output)
                 state.value.recording?.delete()
                 CrashDiagnostics.stage("saving and queuing audio")
-                try { sharing.snapshot(solution, output, playbackSpeed, config.language, spokenText) }
+                try { if (!config.manualPauses) sharing.snapshot(solution, output, playbackSpeed, config.language, spokenText) }
                 catch (e: CancellationException) { throw e }
                 catch (e: Exception) { mutable.update { it.copy(notice="Answers are ready, but sharing could not be queued: ${e.message}") } }
-                playback.load(output, playbackSpeed)
+                if (questionClips.isEmpty()) playback.load(output, playbackSpeed)
+                else playback.loadQuestions(questionClips, playbackSpeed, 0, 0)
                 if(!(getApplication<Application>() as SchoolHelpApplication).visible) com.schoolhelp.app.sharing.SharingNotifications.ready(getApplication(), "Your answers are ready", shared=false)
-                mutable.update { it.copy(recording = output, recordingSpeed = playbackSpeed, savedPositionMs = 0, screen = Screen.LISTEN) }
+                mutable.update { it.copy(recording = output, questionClips = questionClips.toList(), recordingSpeed = playbackSpeed, savedPositionMs = 0, screen = Screen.LISTEN) }
             } catch (e: CancellationException) { output?.delete(); throw e }
             catch (e: OutOfMemoryError) { CrashDiagnostics.record(getApplication(),"preparation-memory",e); output?.delete(); error("This phone ran out of memory. Close other apps or use OpenRouter.") }
             catch (e: LinkageError) { CrashDiagnostics.record(getApplication(),"preparation-native",e); output?.delete(); error("The local AI engine is not supported on this device. Try a recent 64-bit Android phone.") }
             catch (e: Exception) { CrashDiagnostics.record(getApplication(),"preparation",e); output?.delete(); error(e.message ?: "Something went wrong. Please try again.") }
             finally {
+                if (state.value.questionClips.isEmpty()) questionClips.forEach { it.delete() }
                 saveSession()
                 runCatching {database.records().delete("generation-job")}.onFailure {CrashDiagnostics.record(getApplication(),"preparation-cleanup",it)}
                 mutable.update {it.copy(busy=null)}
@@ -408,11 +427,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun cancelWork() { work?.cancel() }
+    private fun loadOwnRecording(current: UiState, file: File) {
+        if (current.questionClips.isEmpty()) playback.load(file, current.recordingSpeed, current.savedPositionMs)
+        else playback.loadQuestions(current.questionClips, current.recordingSpeed, current.questionIndex, current.savedPositionMs)
+    }
+
     fun listenAgain() {
         sharing.sharedMode(false)
         mutable.update { it.copy(sharedListening=false, sharedItemId=null) }
         val file = state.value.recording ?: return
-        playback.load(file, state.value.recordingSpeed, state.value.savedPositionMs)
+        loadOwnRecording(state.value, file)
         screen(Screen.LISTEN)
     }
     fun sharingAction(action: String, enabled: Boolean = false, member: String = "") {

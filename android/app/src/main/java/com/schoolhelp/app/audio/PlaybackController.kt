@@ -31,6 +31,8 @@ data class PlaybackState(
     val durationMs: Long = 0,
     val earbudAction: String? = null,
     val readySoundPlaying: Boolean = false,
+    val questionIndex: Int = 0,
+    val questionCount: Int = 0,
 )
 
 class PlaybackController(context: Context, private val onError: (String) -> Unit) {
@@ -42,6 +44,25 @@ class PlaybackController(context: Context, private val onError: (String) -> Unit
     val mediaController: android.media.session.MediaController? get() = mediaSession?.let {
         android.media.session.MediaController(appContext, it.platformToken as android.media.session.MediaSession.Token)
     }
+    private var questionClips = emptyList<File>()
+    private var questionIndex = 0
+    private var clipSpeed = 1f
+
+    fun loadQuestions(files: List<File>, speed: Float, index: Int, positionMs: Long) {
+        questionClips = files
+        questionIndex = index.coerceIn(files.indices)
+        clipSpeed = speed
+        loadClip(files[questionIndex], speed, positionMs)
+    }
+
+    fun moveQuestion(offset: Int) {
+        val target = questionIndex + offset
+        if (target !in questionClips.indices) return
+        questionIndex = target
+        loadClip(questionClips[target], clipSpeed, 0)
+        player.play()
+    }
+
     private var earbudAction: String? = null
     private val pressedMediaKeys = mutableSetOf<Int>()
     private var metadataDuration = -1L
@@ -94,11 +115,11 @@ class PlaybackController(context: Context, private val onError: (String) -> Unit
                 pause()
             }
             KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                earbudAction = "Forward five seconds"
+                earbudAction = if (questionClips.isEmpty()) "Forward five seconds" else "Next question"
                 act(PlaybackAction.FORWARD)
             }
             KeyEvent.KEYCODE_MEDIA_PREVIOUS, KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                earbudAction = "Back five seconds"
+                earbudAction = if (questionClips.isEmpty()) "Back five seconds" else "Previous question"
                 act(PlaybackAction.REWIND)
             }
         }
@@ -110,6 +131,12 @@ class PlaybackController(context: Context, private val onError: (String) -> Unit
         KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, KeyEvent.KEYCODE_MEDIA_REWIND)
 
     fun load(file: File, speed: Float = 1f, positionMs: Long = 0) {
+        questionClips = emptyList()
+        questionIndex = 0
+        loadClip(file, speed, positionMs)
+    }
+
+    private fun loadClip(file: File, speed: Float, positionMs: Long) {
         stopReadySound()
         pressedMediaKeys.clear()
         earbudAction = null
@@ -131,6 +158,8 @@ class PlaybackController(context: Context, private val onError: (String) -> Unit
             durationMs = player.duration.takeIf { it != C.TIME_UNSET }?.coerceAtLeast(0) ?: 0,
             earbudAction = earbudAction,
             readySoundPlaying = chime?.isPlaying == true,
+            questionCount = questionClips.size,
+            questionIndex = questionIndex,
         )
     }
 
@@ -139,6 +168,10 @@ class PlaybackController(context: Context, private val onError: (String) -> Unit
         stopReadySound()
         if (mediaSession == null) {
             try { appContext.startService(android.content.Intent(appContext, ListeningService::class.java)) } catch (_: IllegalStateException) { }
+        }
+        if (questionClips.isNotEmpty() && action != PlaybackAction.TOGGLE) {
+            moveQuestion(if (action == PlaybackAction.FORWARD) 1 else -1)
+            return
         }
         when (action) {
             PlaybackAction.TOGGLE -> if (player.playWhenReady && player.playbackState != Player.STATE_ENDED) player.pause() else {
@@ -182,7 +215,7 @@ class PlaybackController(context: Context, private val onError: (String) -> Unit
         player.play()
         refresh()
     }
-    fun clear() { stopReadySound(); pressedMediaKeys.clear(); earbudAction = null; player.stop(); player.clearMediaItems(); refresh(); appContext.stopService(android.content.Intent(appContext, ListeningService::class.java)) }
+    fun clear() { questionClips = emptyList(); questionIndex = 0; stopReadySound(); pressedMediaKeys.clear(); earbudAction = null; player.stop(); player.clearMediaItems(); refresh(); appContext.stopService(android.content.Intent(appContext, ListeningService::class.java)) }
     fun release() {
         chime?.release()
         chime = null

@@ -17,6 +17,8 @@ data class SavedSession(
     val positionMs: Long = 0,
     val listening: Boolean = false,
     val transcript: String = "",
+    val questionClips: List<File> = emptyList(),
+    val questionIndex: Int = 0,
 )
 
 /** One private, durable session. Atomic metadata replacement survives interrupted writes. */
@@ -39,6 +41,8 @@ class SessionStore(context: Context) {
             .put("positionMs", session.positionMs)
             .put("listening", session.listening)
             .put("transcript", session.transcript)
+            .put("questionClips", JSONArray(session.questionClips.map { it.name }))
+            .put("questionIndex", session.questionIndex)
         session.solution?.let { solution ->
             json.put("solution", JSONObject().put("problems", JSONArray(solution.problems.map { problem ->
                 JSONObject().put("number", problem.number).put("question", problem.question)
@@ -74,6 +78,10 @@ class SessionStore(context: Context) {
             positionMs = json.optLong("positionMs").coerceAtLeast(0),
             listening = json.optBoolean("listening"),
             transcript = json.optString("transcript"),
+            questionClips = json.optJSONArray("questionClips")?.let { clips ->
+                (0 until clips.length()).mapNotNull { existing(clips.getString(it), directory) }
+            }.orEmpty(),
+            questionIndex = json.optInt("questionIndex"),
         )
     }.getOrDefault(SavedSession())
 }

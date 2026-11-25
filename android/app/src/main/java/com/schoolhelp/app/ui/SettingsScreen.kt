@@ -104,18 +104,23 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
         SettingSwitch("Include reasoning", "Add brief justification or working, as you would on a test.", settings.explanations) {
             model.settings(settings.copy(explanations = it))
         }
-        SettingSwitch("Writing pauses", "Leave silent time to write. Context can override timing or request pauses after each step.", settings.writingPauses) {
-            model.settings(settings.copy(writingPauses = it))
+        SettingSwitch("Manual question pauses", "Wait after each question until you choose the next one. Applies to new recordings in your own workspace.", settings.manualPauses) {
+            model.settings(settings.copy(manualPauses = it))
         }
-        if (settings.writingPauses) {
-            SettingSwitch("Writing pause sounds", "A quiet tick at the start and every five seconds of writing time. Manual pause stops the sound too.", settings.writingPauseSounds) {
-                model.settings(settings.copy(writingPauseSounds=it))
+        if (!settings.manualPauses) {
+            SettingSwitch("Writing pauses", "Leave silent time to write. Context can override timing or request pauses after each step.", settings.writingPauses) {
+                model.settings(settings.copy(writingPauses = it))
             }
-            var wpmText by remember { mutableStateOf(settings.writingWpm.toString()) }
-            OutlinedTextField(wpmText, { value -> wpmText = value.filter { it.isDigit() }.take(3); wpmText.toIntOrNull()?.takeIf { it in 1..300 }?.let { model.settings(settings.copy(writingWpm = it)) } },
-                label = { Text("Writing speed (words per minute)") }, singleLine = true,
-                isError = wpmText.toIntOrNull()?.let { it !in 1..300 } ?: true,
-                supportingText = { Text("1–300 words/minute. Up to 10 minutes per pause. Preparing speech in parts can take longer. Applies to new recordings.") }, modifier = Modifier.fillMaxWidth())
+            if (settings.writingPauses) {
+                SettingSwitch("Writing pause sounds", "A quiet tick at the start and every five seconds of writing time. Manual pause stops the sound too.", settings.writingPauseSounds) {
+                    model.settings(settings.copy(writingPauseSounds=it))
+                }
+                var wpmText by remember { mutableStateOf(settings.writingWpm.toString()) }
+                OutlinedTextField(wpmText, { value -> wpmText = value.filter { it.isDigit() }.take(3); wpmText.toIntOrNull()?.takeIf { it in 1..300 }?.let { model.settings(settings.copy(writingWpm = it)) } },
+                    label = { Text("Writing speed (words per minute)") }, singleLine = true,
+                    isError = wpmText.toIntOrNull()?.let { it !in 1..300 } ?: true,
+                    supportingText = { Text("1–300 words/minute. Up to 10 minutes per pause. Preparing speech in parts can take longer. Applies to new recordings.") }, modifier = Modifier.fillMaxWidth())
+            }
         }
         Text("Speaking speed · ${"%.2f".format(settings.rate)}×", style = MaterialTheme.typography.titleMedium)
         Slider(settings.rate, onValueChange = { model.settings(settings.copy(rate = it)) }, valueRange = com.schoolhelp.app.core.SpeechSpeed.MIN..com.schoolhelp.app.core.SpeechSpeed.MAX, steps = 22,
@@ -123,7 +128,7 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
         Text("Voice and explanation changes apply to the next generated recording.", style = MaterialTheme.typography.bodySmall, color = Muted)
     }
     SettingsSection("Listening controls") {
-        Text("Earbud media controls: play/pause controls speech, next track skips forward 5 seconds, and previous track rewinds 5 seconds. Assign gestures in the Xiaomi Earbuds app. The earbuds decide which gesture sends each command.",
+        Text("Earbud media controls: play/pause controls speech, next and previous track move between questions in manual mode or seek 5 seconds in other recordings. Assign gestures in the Xiaomi Earbuds app. The earbuds decide which gesture sends each command.",
             style = MaterialTheme.typography.bodyMedium, color = Muted)
         SettingSwitch("Ready sound", "A subtle chime when the full-screen button is ready.", settings.readySound) {
             model.settings(settings.copy(readySound = it))
