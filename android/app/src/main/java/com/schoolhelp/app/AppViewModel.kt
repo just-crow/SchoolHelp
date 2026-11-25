@@ -387,9 +387,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     segments.forEachIndexed { index, text ->
                         mutable.update { it.copy(busy = "Preparing segment ${index + 1} of ${segments.size}") }
                         val clip = File(sessions.directory, "question-${java.util.UUID.randomUUID()}.${if (cloudSpeech) "mp3" else "wav"}")
-                        questionClips.add(clip)
-                        if (cloudSpeech) remoteSpeech.generate(text, preferences.apiKey(), config, clip)
+                        val generatedClip = if (cloudSpeech) remoteSpeech.generate(text, preferences.apiKey(), config, clip)
                         else speech.generate(text, config.language, com.schoolhelp.app.core.SpeechSpeed.generation(config.rate), clip)
+                        questionClips.add(generatedClip)
                     }
                     output = questionClips.first()
                 } else if(config.writingPauses) {

@@ -485,9 +485,9 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
                 Text(if (waiting) "New answers will appear here when they are ready." else if (manual) "Segment ${playback.questionIndex + 1} of ${playback.questionCount}" else if (playback.ended) "Triple tap to listen again" else if (playback.playing) "Triple tap anywhere to pause" else "Triple tap anywhere to play",
                     style = MaterialTheme.typography.bodyMedium, color = Cream.copy(alpha = .5f))
                 Spacer(Modifier.height(if (compact) 12.dp else 40.dp))
+                state.error?.let { Text(it, color = Cream, style = MaterialTheme.typography.bodySmall) }
                 if (waiting) {
                     Text(sharedQueue.status, color = Cream.copy(alpha = .65f), style = MaterialTheme.typography.bodySmall)
-                    state.error?.let { Text(it, color = Cream, style = MaterialTheme.typography.bodySmall) }
                     TextButton(onClick = model::syncSharing) { Text("Check for answers", color = Cream) }
                 } else {
                 LinearProgressIndicator(progress = { if (playback.durationMs > 0) (playback.positionMs.toFloat() / playback.durationMs).coerceIn(0f, 1f) else 0f },

@@ -69,18 +69,25 @@ class SessionStore(context: Context) {
         }
         val names = json.getJSONArray("photos")
         val photos = (0 until names.length()).mapNotNull { existing(names.getString(it), File(directory, "images")) }
+        val questionClips = json.optJSONArray("questionClips")?.let { clips ->
+            (0 until clips.length()).mapNotNull { index ->
+                val name = clips.getString(index)
+                existing(name, directory) ?: if (name.startsWith("question-") && name.endsWith(".mp3")) {
+                    // Older versions recorded the requested MP3 path even when speech was saved as WAV.
+                    existing(name.removeSuffix(".mp3") + ".wav", directory)
+                } else null
+            }
+        }.orEmpty()
         SavedSession(
             photos = photos,
             selectedPhoto = json.optInt("selectedPhoto").coerceIn(0, (photos.size - 1).coerceAtLeast(0)),
             solution = json.optJSONObject("solution")?.let { SolutionParser.parse(it.toString()) },
-            recording = existing(json.optString("recording"), directory),
+            recording = questionClips.firstOrNull() ?: existing(json.optString("recording"), directory),
             recordingSpeed = json.optDouble("recordingSpeed", 1.0).toFloat().takeIf { it.isFinite() && it > 0f } ?: 1f,
             positionMs = json.optLong("positionMs").coerceAtLeast(0),
             listening = json.optBoolean("listening"),
             transcript = json.optString("transcript"),
-            questionClips = json.optJSONArray("questionClips")?.let { clips ->
-                (0 until clips.length()).mapNotNull { existing(clips.getString(it), directory) }
-            }.orEmpty(),
+            questionClips = questionClips,
             questionIndex = json.optInt("questionIndex"),
         )
     }.getOrDefault(SavedSession())
