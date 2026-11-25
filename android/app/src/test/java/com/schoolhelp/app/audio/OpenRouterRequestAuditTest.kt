@@ -20,17 +20,20 @@ class OpenRouterRequestAuditTest {
 
     @Test fun segmentedSpeechWaitsThenRetriesOnlyTheRejectedSegment() = runBlocking {
         MockWebServer().use { server ->
-            server.enqueue(MockResponse().setResponseCode(402).setHeader("Retry-After", "1")
-                .setBody("""{"error":{"metadata":{"limit_source":"openrouter_in_flight_budget"}}}"""))
+            repeat(2) {
+                server.enqueue(MockResponse().setResponseCode(402).setHeader("Retry-After", "1")
+                    .setBody("""{"error":{"metadata":{"limit_source":"openrouter_in_flight_budget"}}}"""))
+            }
             server.enqueue(MockResponse().setHeader("Content-Type", "audio/mpeg").setBody("test audio"))
             val service = OpenRouterSpeech(OkHttpClient(), server.url("/").toString())
             val start = System.nanoTime()
             val clip = service.generate("Segment three.", "fixture", settings, files.root.resolve("clip.mp3"),
                 retryTemporaryBudget = true)
-            assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) >= 1000L)
+            assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) >= 2000L)
             assertEquals("test audio", clip.readText())
-            assertEquals(2, server.requestCount)
-            assertEquals(server.takeRequest().body.readUtf8(), server.takeRequest().body.readUtf8())
+            assertEquals(3, server.requestCount)
+            val original = server.takeRequest().body.readUtf8()
+            repeat(2) { assertEquals(original, server.takeRequest().body.readUtf8()) }
         }
     }
 

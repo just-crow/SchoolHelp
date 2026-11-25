@@ -59,11 +59,18 @@ class OpenRouterSpeech(
         if (settings.speechVoice.isNotBlank()) body.put("voice", settings.speechVoice.trim())
         val request = Request.Builder().url("${baseUrl}audio/speech").header("Authorization", "Bearer $cleanKey")
             .header("X-Title", "SchoolHelp").post(body.toString().toRequestBody("application/json".toMediaType())).build()
-        try {
-            download(request, cleanKey, text, output, retryTemporaryBudget)
-        } catch (retry: TemporarySpeechBudget) {
-            delay(retry.seconds * 1000)
-            download(request, cleanKey, text, output, allowBudgetRetry = false)
+        downloadWithBudgetRetries(request, cleanKey, text, output, retryTemporaryBudget)
+    }
+
+    private suspend fun downloadWithBudgetRetries(
+        request: Request, cleanKey: String, text: String, output: File, retryTemporaryBudget: Boolean,
+    ): File {
+        while (true) {
+            try {
+                return download(request, cleanKey, text, output, retryTemporaryBudget)
+            } catch (retry: TemporarySpeechBudget) {
+                delay(retry.seconds * 1000)
+            }
         }
     }
 

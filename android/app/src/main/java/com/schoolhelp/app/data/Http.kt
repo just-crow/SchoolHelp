@@ -58,8 +58,14 @@ private fun org.json.JSONObject?.isTemporaryBudgetLimit(): Boolean =
 
 internal fun Response.openRouterBudgetRetrySeconds(): Long? {
     if (code != 402 || !openRouterErrorMetadata().isTemporaryBudgetLimit()) return null
-    val seconds = header("Retry-After")?.toLongOrNull() ?: 5
-    return seconds.takeIf { it in 0..30 }?.coerceAtLeast(1)
+    val retryAfter = header("Retry-After")?.trim()
+    val seconds = retryAfter?.toLongOrNull() ?: retryAfter?.let { date ->
+        runCatching {
+            java.time.Duration.between(java.time.Instant.now(),
+                java.time.ZonedDateTime.parse(date, java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME).toInstant()).seconds + 1
+        }.getOrNull()
+    } ?: 5
+    return seconds.coerceIn(1, Long.MAX_VALUE / 1000)
 }
 
 /** Use only known error codes so upstream messages cannot expose request details. */
