@@ -57,6 +57,12 @@ class OpenRouterSpeech(
         val body = JSONObject().put("model", settings.speechModelId).put("input", text)
             .put("response_format", format)
         if (settings.speechVoice.isNotBlank()) body.put("voice", settings.speechVoice.trim())
+        val language = settings.outputLanguage.trim()
+        val supportsInstructions = settings.speechModelId.startsWith("fish-audio/") ||
+            settings.speechModelId.startsWith("google/gemini-")
+        if (supportsInstructions && language.isNotBlank()) {
+            body.put("instructions", "Read the provided text as written and speak in $language.")
+        }
         val request = Request.Builder().url("${baseUrl}audio/speech").header("Authorization", "Bearer $cleanKey")
             .header("X-Title", "SchoolHelp").post(body.toString().toRequestBody("application/json".toMediaType())).build()
         downloadWithBudgetRetries(request, cleanKey, text, output, retryTemporaryBudget)

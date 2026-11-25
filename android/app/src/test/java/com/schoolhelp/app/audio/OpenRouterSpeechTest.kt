@@ -31,6 +31,16 @@ class OpenRouterSpeechTest {
         assertFalse(File(file.parentFile, "${file.name}.partial").exists())
     }
 
+    @Test fun fishAudioReceivesSelectedLanguageAsDeliveryInstructions() = runBlocking {
+        server.enqueue(MockResponse().setHeader("Content-Type", "audio/mpeg").setBody("test audio"))
+        speech.generate("Guten Morgen.", "test-key",
+            settings.copy(speechModelId = "fish-audio/s2.1-pro", outputLanguage = "German"), output())
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+        assertEquals("Guten Morgen.", body.getString("input"))
+        assertEquals("Read the provided text as written and speak in German.", body.getString("instructions"))
+        assertFalse(body.has("language"))
+    }
+
     @Test fun discoversOnlySpeechModelsAndTheirExactVoiceIds() = runBlocking {
         server.enqueue(MockResponse().setBody("""{"data":[
             {"id":"chat","architecture":{"output_modalities":["text","audio"]}},

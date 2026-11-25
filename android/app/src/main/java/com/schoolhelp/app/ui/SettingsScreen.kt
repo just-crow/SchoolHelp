@@ -200,6 +200,15 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
         var query by remember { mutableStateOf("") }
         AlertDialog(onDismissRequest = { showSpeechModels = false }, title = { Text("Choose a speech model") }, text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    settings.outputLanguage,
+                    { model.settings(settings.copy(outputLanguage = it.take(60))) },
+                    label = { Text("Answer and speech language") },
+                    placeholder = { Text("English, German, Bosnian…") },
+                    supportingText = { Text("Sets the answer text language. Fish Audio and Gemini also receive a speaking instruction.") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 OutlinedTextField(query, { query = it }, label = { Text("Search speech models") }, singleLine = true)
                 if (state.loadingSpeechModels) LinearProgressIndicator(Modifier.fillMaxWidth())
                 else if (state.speechModels.isEmpty()) Text("No speech models loaded. Check your connection and retry.")
