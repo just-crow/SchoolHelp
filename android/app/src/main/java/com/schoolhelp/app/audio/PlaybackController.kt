@@ -48,11 +48,12 @@ class PlaybackController(context: Context, private val onError: (String) -> Unit
     private var questionIndex = 0
     private var clipSpeed = 1f
 
-    fun loadQuestions(files: List<File>, speed: Float, index: Int, positionMs: Long) {
+    fun loadQuestions(files: List<File>, speed: Float, index: Int, positionMs: Long, autoplay: Boolean = false) {
         questionClips = files
         questionIndex = index.coerceIn(files.indices)
         clipSpeed = speed
         loadClip(files[questionIndex], speed, positionMs)
+        if (autoplay) player.play()
     }
 
     fun moveQuestion(offset: Int) {
@@ -222,9 +223,10 @@ class PlaybackController(context: Context, private val onError: (String) -> Unit
 
     fun pause() { stopReadySound(); player.pause(); refresh() }
     fun restart() {
-        if (!mutable.value.ready) return
+        if (!hasRecording) return
         stopReadySound()
         player.seekTo(0)
+        if (player.playbackState == Player.STATE_IDLE) player.prepare()
         player.play()
         refresh()
     }

@@ -408,7 +408,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 catch (e: CancellationException) { throw e }
                 catch (e: Exception) { mutable.update { it.copy(notice="Answers are ready, but sharing could not be queued: ${e.message}") } }
                 if (questionClips.isEmpty()) playback.load(output, playbackSpeed)
-                else playback.loadQuestions(questionClips, playbackSpeed, 0, 0)
+                else playback.loadQuestions(questionClips, playbackSpeed, 0, 0,
+                    autoplay = (getApplication<Application>() as SchoolHelpApplication).visible)
                 if(!(getApplication<Application>() as SchoolHelpApplication).visible) com.schoolhelp.app.sharing.SharingNotifications.ready(getApplication(), "Your answers are ready", shared=false)
                 mutable.update { it.copy(recording = output, questionClips = questionClips.toList(), recordingSpeed = playbackSpeed, savedPositionMs = 0, screen = Screen.LISTEN) }
             } catch (e: CancellationException) { output?.delete(); throw e }

@@ -38,6 +38,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -441,7 +442,7 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
             }
             .pointerInput(taps, manual) {
                 awaitEachGesture {
-                    awaitFirstDown().consume()
+                    awaitFirstDown(pass = PointerEventPass.Final)
                     pending?.cancel()
                     // A Boolean result distinguishes release/cancellation from timeout.
                     val released = withTimeoutOrNull(1500L) {
@@ -506,7 +507,7 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
                     TextButton(enabled = playback.questionIndex > 0, onClick = { model.playback.moveQuestion(-1) }) {
                         Text("Previous", color = Cream.copy(alpha = if (playback.questionIndex > 0) 1f else .35f))
                     }
-                    TextButton(enabled = playback.ready, onClick = model.playback::restart) {
+                    TextButton(onClick = model.playback::restart) {
                         Text("Repeat", color = Cream)
                     }
                     TextButton(enabled = playback.questionIndex + 1 < playback.questionCount, onClick = { model.playback.moveQuestion(1) }) {
