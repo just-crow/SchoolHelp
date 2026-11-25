@@ -22,8 +22,8 @@ android {
             val value = sharingConfig.getProperty(name, "").replace("\\", "\\\\").replace("\"", "\\\"")
             buildConfigField("String", name, "\"$value\"")
         }
-        versionCode = 20
-        versionName = "1.1.18"
+        versionCode = 21
+        versionName = "1.1.19"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }

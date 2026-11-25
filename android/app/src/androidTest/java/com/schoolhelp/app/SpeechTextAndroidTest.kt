@@ -21,7 +21,7 @@ class SpeechTextAndroidTest {
     @Test fun nestedFractionsKeepTheirGrouping() {
         assertEquals("a fraction with numerator 1 over 2 and denominator 3 end of fraction",
             SpeechText.clean("\\frac{\\frac{1}{2}}{3}"))
-        val solution = Solution(listOf(Problem("1", "", "", "", "**\\frac{1}{2}**")))
+        val solution = Solution(listOf(Problem("1", "", "", "", "**\\frac{1}{2}**", spokenLabel = "Question 1")))
         assertEquals("Question 1. 1 over 2", solution.speech(false, "en"))
     }
 }

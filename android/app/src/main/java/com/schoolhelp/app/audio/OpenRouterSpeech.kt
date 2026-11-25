@@ -3,6 +3,7 @@ package com.schoolhelp.app.audio
 import com.schoolhelp.app.core.ApiKey
 import com.schoolhelp.app.data.AppSettings
 import com.schoolhelp.app.data.openRouterCreditMessage
+import com.schoolhelp.app.data.useOpenRouterGenerationResponse
 import com.schoolhelp.app.data.useResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -25,7 +26,7 @@ data class SpeechModel(val id: String, val name: String, val voices: List<String
 
 class OpenRouterSpeech(
     private val client: OkHttpClient = OkHttpClient.Builder().connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(180, TimeUnit.SECONDS).callTimeout(240, TimeUnit.SECONDS).build(),
+        .readTimeout(180, TimeUnit.SECONDS).callTimeout(240, TimeUnit.SECONDS).retryOnConnectionFailure(false).build(),
     private val baseUrl: String = "https://openrouter.ai/api/v1/",
 ) {
     suspend fun models(): List<SpeechModel> = withContext(Dispatchers.IO) {
@@ -59,11 +60,11 @@ class OpenRouterSpeech(
         val partial = File(output.parentFile, "${output.name}.partial")
         try {
             var recording = output
-            client.newCall(request).useResponse { response ->
+            client.newCall(request).useOpenRouterGenerationResponse { response ->
                 check(response.isSuccessful) {
                     when (response.code) {
                         401, 403 -> "OpenRouter rejected the API key. Check it in settings."
-                        402 -> response.openRouterCreditMessage()
+                        402 -> response.openRouterCreditMessage("speech generation")
                         400, 404, 422 -> {
                             val detail = runCatching {
                                 JSONObject(response.peekBody(8192).string()).optJSONObject("error")?.optString("message")

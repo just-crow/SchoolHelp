@@ -12,6 +12,7 @@ import com.schoolhelp.app.core.ApiKey
 import com.schoolhelp.app.core.SolutionParser
 import com.schoolhelp.app.data.AppSettings
 import com.schoolhelp.app.data.openRouterCreditMessage
+import com.schoolhelp.app.data.useOpenRouterGenerationResponse
 import com.schoolhelp.app.data.useResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -88,7 +89,7 @@ data class RemoteModel(val id: String, val name: String)
 class OpenRouterSolver(
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS).readTimeout(180, TimeUnit.SECONDS)
-        .callTimeout(240, TimeUnit.SECONDS).build(),
+        .callTimeout(240, TimeUnit.SECONDS).retryOnConnectionFailure(false).build(),
     private val baseUrl: String = "https://openrouter.ai/api/v1/",
 ) {
     suspend fun models(): List<RemoteModel> = withContext(Dispatchers.IO) {
@@ -140,7 +141,7 @@ class OpenRouterSolver(
             val request = Request.Builder().url("${baseUrl}chat/completions")
                 .header("Authorization", "Bearer $cleanKey").header("X-Title", "SchoolHelp")
                 .post(body.toString().toRequestBody("application/json".toMediaType())).build()
-            return client.newCall(request).useResponse { response ->
+            return client.newCall(request).useOpenRouterGenerationResponse { response ->
                 checkStatus(response)
                 val json = JSONObject(response.body?.string() ?: error("The model returned no answer."))
                 val choice = json.getJSONArray("choices").getJSONObject(0)
@@ -162,7 +163,7 @@ class OpenRouterSolver(
         check(code in 200..299) {
             when (code) {
                 401, 403 -> "OpenRouter rejected the API key. Check it in settings."
-                402 -> response.openRouterCreditMessage()
+                402 -> response.openRouterCreditMessage("answer generation")
                 429 -> "OpenRouter is busy or your rate limit was reached. Try again shortly."
                 else -> "OpenRouter request failed ($code). Try again or choose another model."
             }

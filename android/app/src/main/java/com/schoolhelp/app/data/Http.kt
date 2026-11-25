@@ -6,6 +6,8 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
@@ -40,8 +42,14 @@ suspend fun <T> Call.useResponse(block: suspend (Response) -> T): T = coroutineS
     }
 }
 
+private val openRouterGenerationLock = Mutex()
+
+/** Share one gate across chat, speech and transcription, through the end of the response body. */
+internal suspend fun <T> Call.useOpenRouterGenerationResponse(block: suspend (Response) -> T): T =
+    openRouterGenerationLock.withLock { useResponse(block) }
+
 /** Use only known error codes so upstream messages cannot expose request details. */
-internal fun Response.openRouterCreditMessage(): String {
+internal fun Response.openRouterCreditMessage(operation: String): String {
     val metadata = runCatching {
         org.json.JSONObject(peekBody(8192).string()).optJSONObject("error")?.optJSONObject("metadata")
     }.getOrNull()
@@ -50,7 +58,11 @@ internal fun Response.openRouterCreditMessage(): String {
             "The OpenRouter key reached its spending limit. Check this key's limit in OpenRouter."
         metadata?.optString("limit_source") == "openrouter_in_flight_budget" ||
             metadata?.optString("reason") == "in_flight_budget_exhausted" ->
-            "OpenRouter temporarily limited concurrent spending. Wait for other requests to finish, then retry."
+            {
+                val retryAfter = header("Retry-After")?.toLongOrNull()?.takeIf { it > 0 }
+                val retry = retryAfter?.let { "Try again in $it seconds." } ?: "Try again shortly."
+                "OpenRouter blocked $operation with a temporary spending limit (402). $retry"
+            }
         else -> "OpenRouter rejected the request for budget reasons (402). Check the saved key's spending limit and your OpenRouter balance."
     }
 }

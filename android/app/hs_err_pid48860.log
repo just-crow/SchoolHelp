@@ -1,0 +1,245 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (mmap) failed to map 534773760 bytes. Error detail: G1 virtual space
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   This process is running with CompressedOops enabled, and the Java Heap may be blocking the growth of the native heap
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+#   JVM is running with Unscaled Compressed Oops mode in which the Java heap is
+#     placed in the first 4GB address space. The Java Heap base address is the
+#     maximum limit for the native heap growth. Please use -XX:HeapBaseMinAddress
+#     to set the Java Heap base and to place the Java Heap above 4GB virtual address.
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (os_windows.cpp:3690), pid=48860, tid=44956
+#
+# JRE version:  (17.0.18+8) (build )
+# Java VM: OpenJDK 64-Bit Server VM (17.0.18+8-LTS, mixed mode, sharing, tiered, compressed oops, compressed class ptrs, g1 gc, windows-amd64)
+# No core dump will be written. Minidumps are not enabled by default on client versions of Windows
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: -Djava.awt.headless=true -Djava.library.path=C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\powershell;C:\Users\Mak\.codex\tmp\arg0-windows\codex-arg0t9QDld;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\powershell;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\libheif\libheif\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\jxrlib\jxrlib\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\poppler\Library\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\bin\override;C:\Program Files\Microsoft\jdk-17.0.21.21-hotspot\bin;C:\Program Files (x86)\Common Files\Oracle\Java\java8path;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Tailscale\;C:\Program Files\Git\cmd;C:\Program Files\PuTTY\;C:\msys64\ucrt64\bin;;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\GitHub CLI\;C:\Program Files\dotnet\;C:\Users\Mak\AppData\Local\Muse Hub\lib;C:\Program Files\nodejs\;C:\Program Files (x86)\cloudflared\;C:\Users\Mak\AppData\Local\hermes\node;C:\Users\Mak\AppData\Local\hermes\bin;C:\Users\Mak\.herdr\packages\standalone\releases\0.9.0-x86_64-pc-windows-msvc;C:\Users\Mak\.unsloth\studio\bin;C:\Users\Mak\AppData\Local\Programs\Python\Python313\Scripts\;C:\-Dorg.gradle.internal.worker.tmpdir=C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\android\app\build\tmp\testDebugUnitTest\work --add-opens=java.base/java.io=ALL-UNNAMED -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant -ea worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Test Executor 11'
+
+Host: AMD Ryzen 5 5600G with Radeon Graphics         , 12 cores, 31G,  Windows 11 , 64 bit Build 26100 (10.0.26100.9974)
+Time: Wed Nov 25 22:57:24 2026 Central European Standard Time elapsed time: 0.013500 seconds (0d 0h 0m 0s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x0000019777fd5a60):  JavaThread "Unknown thread" [_thread_in_vm, id=44956, stack(0x0000006910100000,0x0000006910200000)]
+
+Stack: [0x0000006910100000,0x0000006910200000]
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [jvm.dll+0x68c879]  (no source info available)
+V  [jvm.dll+0x845979]  (no source info available)
+V  [jvm.dll+0x8476e8]  (no source info available)
+V  [jvm.dll+0x847d73]  (no source info available)
+V  [jvm.dll+0x24cf6f]  (no source info available)
+V  [jvm.dll+0x68bc79]  (no source info available)
+V  [jvm.dll+0x68023a]  (no source info available)
+V  [jvm.dll+0x3101a0]  (no source info available)
+V  [jvm.dll+0x310042]  (no source info available)
+V  [jvm.dll+0x317599]  (no source info available)
+V  [jvm.dll+0x369999]  (no source info available)
+V  [jvm.dll+0x369bcd]  (no source info available)
+V  [jvm.dll+0x2e69aa]  (no source info available)
+V  [jvm.dll+0x2e78b8]  (no source info available)
+V  [jvm.dll+0x81871e]  (no source info available)
+V  [jvm.dll+0x377601]  (no source info available)
+V  [jvm.dll+0x7f6d65]  (no source info available)
+V  [jvm.dll+0x3fd47b]  (no source info available)
+V  [jvm.dll+0x3ff0b1]  (no source info available)
+C  [jli.dll+0x52f0]  (no source info available)
+C  [ucrtbase.dll+0x2cd30]  (no source info available)
+C  [KERNEL32.DLL+0x2dda7]  (no source info available)
+C  [ntdll.dll+0xc9c5c]  (no source info available)
+
+
+---------------  P R O C E S S  ---------------
+
+Threads class SMR info:
+_java_thread_list=0x00007ffc787f6058, length=0, elements={
+}
+
+Java Threads: ( => current thread )
+
+Other Threads:
+  0x0000019778008650 GCTaskThread "GC Thread#0" [stack: 0x0000006910200000,0x0000006910300000] [id=18000]
+  0x000001977800d620 ConcurrentGCThread "G1 Main Marker" [stack: 0x0000006910300000,0x0000006910400000] [id=12356]
+  0x0000019778010110 ConcurrentGCThread "G1 Conc#0" [stack: 0x0000006910400000,0x0000006910500000] [id=22264]
+
+[error occurred during error reporting (printing all threads), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ffc77fa74e7]
+
+VM state: not at safepoint (not fully initialized)
+
+VM Mutex/Monitor currently owned by a thread:  ([mutex/lock_event])
+[0x0000019777fd4af0] Heap_lock - owner thread: 0x0000019777fd5a60
+
+Heap address: 0x00000000e0000000, size: 512 MB, Compressed Oops mode: 32-bit
+
+CDS archive(s) mapped at: [0x0000000000000000-0x0000000000000000-0x0000000000000000), size 0, SharedBaseAddress: 0x0000000800000000, ArchiveRelocationMode: 1.
+Narrow klass base: 0x0000000000000000, Narrow klass shift: 0, Narrow klass range: 0x0
+
+GC Precious Log:
+<Empty>
+
+Heap:
+ garbage-first heap   total 0K, used 0K [0x00000000e0000000, 0x0000000100000000)
+  region size 1024K, 0 young (0K), 0 survivors (0K)
+
+[error occurred during error reporting (printing heap information), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ffc78398929]
+
+GC Heap History (0 events):
+No events
+
+Dll operation events (1 events):
+Event: 0.008 Loaded shared library C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin\java.dll
+
+Deoptimization events (0 events):
+No events
+
+Classes loaded (0 events):
+No events
+
+Classes unloaded (0 events):
+No events
+
+Classes redefined (0 events):
+No events
+
+Internal exceptions (0 events):
+No events
+
+VM Operations (0 events):
+No events
+
+Memory protections (0 events):
+No events
+
+Nmethod flushes (0 events):
+No events
+
+Events (0 events):
+No events
+
+
+Dynamic libraries:
+0x00007ff702640000 - 0x00007ff70264e000 	C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin\java.exe
+0x00007ffd9d8f0000 - 0x00007ffd9db5c000 	C:\WINDOWS\SYSTEM32\ntdll.dll
+0x00007ffd9cf10000 - 0x00007ffd9cfdb000 	C:\WINDOWS\System32\KERNEL32.DLL
+0x00007ffd9b1a0000 - 0x00007ffd9b5a9000 	C:\WINDOWS\System32\KERNELBASE.dll
+0x00007ffd97a40000 - 0x00007ffd97adf000 	C:\WINDOWS\SYSTEM32\apphelp.dll
+0x00007ffd9aed0000 - 0x00007ffd9b01c000 	C:\WINDOWS\System32\ucrtbase.dll
+0x00007ffd3ca10000 - 0x00007ffd3ca28000 	C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin\jli.dll
+0x00007ffd3b0d0000 - 0x00007ffd3b0ee000 	C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin\VCRUNTIME140.dll
+0x00007ffd9cff0000 - 0x00007ffd9d1ce000 	C:\WINDOWS\System32\USER32.dll
+0x00007ffd79f10000 - 0x00007ffd7a1a1000 	C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9818_none_3e071914e3359bdd\COMCTL32.dll
+0x00007ffd9aa90000 - 0x00007ffd9aab7000 	C:\WINDOWS\System32\win32u.dll
+0x00007ffd9cb70000 - 0x00007ffd9cc19000 	C:\WINDOWS\System32\msvcrt.dll
+0x00007ffd9c790000 - 0x00007ffd9c7bb000 	C:\WINDOWS\System32\GDI32.dll
+0x00007ffd9ace0000 - 0x00007ffd9ae09000 	C:\WINDOWS\System32\gdi32full.dll
+0x00007ffd9b030000 - 0x00007ffd9b0d3000 	C:\WINDOWS\System32\msvcp_win.dll
+0x00007ffd9bdb0000 - 0x00007ffd9bde1000 	C:\WINDOWS\System32\IMM32.DLL
+0x00007ffd60d50000 - 0x00007ffd60d5c000 	C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin\vcruntime140_1.dll
+0x00007ffcf0310000 - 0x00007ffcf0399000 	C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin\msvcp140.dll
+0x00007ffc77cb0000 - 0x00007ffc7892a000 	C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin\server\jvm.dll
+0x00007ffd9d2e0000 - 0x00007ffd9d39c000 	C:\WINDOWS\System32\ADVAPI32.dll
+0x00007ffd9c6e0000 - 0x00007ffd9c788000 	C:\WINDOWS\System32\sechost.dll
+0x00007ffd9cd60000 - 0x00007ffd9ce78000 	C:\WINDOWS\System32\RPCRT4.dll
+0x00007ffd9b5b0000 - 0x00007ffd9b630000 	C:\WINDOWS\System32\WS2_32.dll
+0x00007ffd9a720000 - 0x00007ffd9a77e000 	C:\WINDOWS\SYSTEM32\POWRPROF.dll
+0x00007ffd8c890000 - 0x00007ffd8c8c6000 	C:\WINDOWS\SYSTEM32\WINMM.dll
+0x00007ffd93d20000 - 0x00007ffd93d2b000 	C:\WINDOWS\SYSTEM32\VERSION.dll
+0x00007ffd9a700000 - 0x00007ffd9a715000 	C:\WINDOWS\SYSTEM32\UMPDC.dll
+0x00007ffd996f0000 - 0x00007ffd9970b000 	C:\WINDOWS\SYSTEM32\kernel.appcore.dll
+0x00007ffd5fd90000 - 0x00007ffd5fd9a000 	C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin\jimage.dll
+0x00007ffd844c0000 - 0x00007ffd8470c000 	C:\WINDOWS\SYSTEM32\DBGHELP.DLL
+0x00007ffd9c7c0000 - 0x00007ffd9cb65000 	C:\WINDOWS\System32\combase.dll
+0x00007ffd9cc80000 - 0x00007ffd9cd5a000 	C:\WINDOWS\System32\OLEAUT32.dll
+0x00007ffd77cf0000 - 0x00007ffd77d2b000 	C:\WINDOWS\SYSTEM32\dbgcore.DLL
+0x00007ffd9b0e0000 - 0x00007ffd9b18c000 	C:\WINDOWS\System32\bcryptPrimitives.dll
+0x00007ffd3aba0000 - 0x00007ffd3abc6000 	C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin\java.dll
+
+dbghelp: loaded successfully - version: 4.0.5 - missing functions: none
+symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin;C:\WINDOWS\SYSTEM32;C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9818_none_3e071914e3359bdd;C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin\server
+
+VM Arguments:
+jvm_args: -Djava.awt.headless=true -Djava.library.path=C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\powershell;C:\Users\Mak\.codex\tmp\arg0-windows\codex-arg0t9QDld;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\powershell;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\libheif\libheif\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\jxrlib\jxrlib\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\poppler\Library\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\bin\override;C:\Program Files\Microsoft\jdk-17.0.21.21-hotspot\bin;C:\Program Files (x86)\Common Files\Oracle\Java\java8path;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Tailscale\;C:\Program Files\Git\cmd;C:\Program Files\PuTTY\;C:\msys64\ucrt64\bin;;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\GitHub CLI\;C:\Program Files\dotnet\;C:\Users\Mak\AppData\Local\Muse Hub\lib;C:\Program Files\nodejs\;C:\Program Files (x86)\cloudflared\;C:\Users\Mak\AppData\Local\hermes\node;C:\Users\Mak\AppData\Local\hermes\bin;C:\Users\Mak\.herdr\packages\standalone\releases\0.9.0-x86_64-pc-windows-msvc;C:\Users\Mak\.unsloth\studio\bin;C:\Users\Mak\AppData\Local\Programs\Python\Python313\Scripts\;C:\-Dorg.gradle.internal.worker.tmpdir=C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\android\app\build\tmp\testDebugUnitTest\work --add-opens=java.base/java.io=ALL-UNNAMED -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant -ea 
+java_command: worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Test Executor 11'
+java_class_path (initial): C:\\Users\\Mak\\.gradle\\caches\\8.13\\workerMain\\gradle-worker.jar;C:\\Users\\Mak\\Desktop\\Code\\Vibecoding\\SchoolHelpApp\\android\\app\\build\\tmp\\kotlin-classes\\debugUnitTest;C:\\Users\\Mak\\Desktop\\Code\\Vibecoding\\SchoolHelpApp\\android\\app\\build\\intermediates\\java_res\\debugUnitTest\\processDebugUnitTestJavaRes\\out;C:\\Users\\Mak\\Desktop\\Code\\Vibecoding\\SchoolHelpApp\\android\\app\\build\\intermediates\\runtime_app_classes_jar\\debug\\bundleDebugClassesToRuntimeJar\\classes.jar;C:\\Users\\Mak\\.gradle\\caches\\8.13\\transforms\\1d4e7f43f9e68d72a47c427e79940916\\transformed\\sherpa-onnx-1.13.8-runtime.jar;C:\\Users\\Mak\\.gradle\\caches\\modules-2\\files-2.1\\com.squareup.okhttp3\\mockwebserver\\4.12.0\\3bc54cc5c87cd632031d0881f3c313d3799a1476\\mockwebserver-4.12.0.jar;C:\\Users\\Mak\\.gradle\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;C:\\Users\\Mak\\.gradle\\caches\\modules-2\\files-2.1\\org.json\\json\\20240303\\ebb88e8fb5122b7506d5cf1d69f1ccdb790d22a\\json-20240303.jar;C:\\Users\\Mak\\.gradle\\caches\\8.13\\transforms\\2d6f6f0ce5f231f24be57a72a186470a\\transformed\\material3-runtime.jar;C:\\Users\\Mak\\.gradle\\caches\\8.13\\transforms\\d3d4f4c94fd07b0b7ebfc4c5966d06ec\\transformed\\material-runtime.jar;C:\\Users\\Mak\\.gradle\\caches\\8.13\\transforms\\82920b841b2739560688d46d6e048a26\\transformed\\material-ripple-runtime.jar;C:\\Users\\Mak\\.gradle\\caches\\8.13\\transforms\\04f67a450b42986fb82e1e1d849a3816\\transformed\\foundation-release-runtime.jar;C:\\Users\\Mak\\.gradle\\caches\\8.13\\transforms\\79d59a963a576418e455f323f216cb4c\\transformed\\animation-runtime.jar;C:\\Users\\Mak\\.gradle\\caches\\8.13\\transforms\\882c04e7729d959417a6a7e7a47b35b0\\transformed\\foundation-layout-runtime.jar;C:\\Users\\Mak\\.gradle\\caches\\8.13\\transforms\\6bb3377ca93abdb392d5d26ec07dec0c\\transformed\\animation-core-runtime.jar;C:\\Users\\Mak\\.gradle\\ca
+Launcher Type: SUN_STANDARD
+
+[Global flags]
+     intx CICompilerCount                          = 4                                         {product} {ergonomic}
+     uint ConcGCThreads                            = 3                                         {product} {ergonomic}
+     uint G1ConcRefinementThreads                  = 10                                        {product} {ergonomic}
+   size_t G1HeapRegionSize                         = 1048576                                   {product} {ergonomic}
+    uintx GCDrainStackTargetSize                   = 64                                        {product} {ergonomic}
+   size_t InitialHeapSize                          = 534773760                                 {product} {ergonomic}
+   size_t MarkStackSize                            = 4194304                                   {product} {ergonomic}
+   size_t MaxHeapSize                              = 536870912                                 {product} {command line}
+   size_t MinHeapDeltaBytes                        = 1048576                                   {product} {ergonomic}
+   size_t MinHeapSize                              = 8388608                                   {product} {ergonomic}
+    uintx NonNMethodCodeHeapSize                   = 5839372                                {pd product} {ergonomic}
+    uintx NonProfiledCodeHeapSize                  = 122909434                              {pd product} {ergonomic}
+    uintx ProfiledCodeHeapSize                     = 122909434                              {pd product} {ergonomic}
+    uintx ReservedCodeCacheSize                    = 251658240                              {pd product} {ergonomic}
+     bool SegmentedCodeCache                       = true                                      {product} {ergonomic}
+   size_t SoftMaxHeapSize                          = 536870912                              {manageable} {ergonomic}
+     bool UseCompressedClassPointers               = true                           {product lp64_product} {ergonomic}
+     bool UseCompressedOops                        = true                           {product lp64_product} {ergonomic}
+     bool UseG1GC                                  = true                                      {product} {ergonomic}
+     bool UseLargePagesIndividualAllocation        = false                                  {pd product} {ergonomic}
+
+Logging:
+Log output configuration:
+ #0: stdout all=warning uptime,level,tags
+ #1: stderr all=off uptime,level,tags
+
+Environment Variables:
+JAVA_HOME=C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\.tools\jdk\jdk-17.0.18+8
+CLASSPATH=C:\Users\Mak\Desktop\Code\Vibecoding\SchoolHelpApp\android\\gradle\wrapper\gradle-wrapper.jar
+PATH=C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\powershell;C:\Users\Mak\.codex\tmp\arg0-windows\codex-arg0t9QDld;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\powershell;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\libheif\libheif\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\jxrlib\jxrlib\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\poppler\Library\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\bin\override;C:\Program Files\Microsoft\jdk-17.0.21.21-hotspot\bin;C:\Program Files (x86)\Common Files\Oracle\Java\java8path;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\NVIDIA App\NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Tailscale\;C:\Program Files\Git\cmd;C:\Program Files\PuTTY\;C:\msys64\ucrt64\bin;;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\GitHub CLI\;C:\Program Files\dotnet\;C:\Users\Mak\AppData\Local\Muse Hub\lib;C:\Program Files\nodejs\;C:\Program Files (x86)\cloudflared\;C:\Users\Mak\AppData\Local\hermes\node;C:\Users\Mak\AppData\Local\hermes\bin;C:\Users\Mak\.herdr\packages\standalone\releases\0.9.0-x86_64-pc-windows-msvc;C:\Users\Mak\.unsloth\studio\bin;C:\Users\Mak\AppData\Local\Programs\Python\Python313\Scripts\;C:\Users\Mak\AppData\Local\Programs\Python\Python313\;C:\Users\Mak\AppData\Local\agy\bin;C:\Program Files\BraveSoftware\Brave-Browser\Application;C:\Users\Mak\AppData\Local\Microsoft\WindowsApps;C:\Users\Mak\AppData\Local\Programs\Antigravity\bin;C:\Users\Mak\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\Mak\.local\bin;C:\Users\Mak\AppData\Local\PowerToys\DSCModules\;C:\Users\Mak\AppData\Local\Programs\Ollama;C:\Users\Mak\.lmstudio\bin;C:\xampp\php;C:\xampp\mysql\bin;C:\Users\Mak\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\Scripts;C:\Users\Mak\AppData\Local\Python\bin;C:\Users\Mak\AppData\Local\agy\bin\agy.exe;C:\Users\Mak\AppData\Local\Programs\Antigravity IDE\bin;C:\Users\Mak\AppData\Local\Microsoft\WinGet\Links;C:\Users\Mak\AppData\Local\Muse Hub\lib;C:\Users\Mak\AppData\Local\Microsoft\WinGet\Packages\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\Users\Mak\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\Mak\AppData\Roaming\npm;C:\Users\Mak\AppData\Local\Microsoft\WinGet\Packages\BurntSushi.ripgrep.MSVC_Microsoft.Winget.Source_8wekyb3d8bbwe\ripgrep-15.2.0-x86_64-pc-windows-msvc;C:\Users\Mak\AppData\Local\Programs\Cua\cua-driver\bin;C:\Users\Mak\AppData\Local\Microsoft\WinGet\Packages\DenoLand.Deno_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\Users\Mak\AppData\Local\Microsoft\WinGet\Packages\yt-dlp.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-N-127043-g5a54fcf75e-win64-gpl\bin;C:\Users\Mak\AppData\Local\Microsoft\WinGet\Packages\yt-dlp.yt-dlp_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\Users\Mak\AppData\Roaming\hex\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\bin\fallback;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\node\bin;C:\Program Files\WindowsApps\OpenAI.CodexPrimaryRuntime.v26-1112-737-0_26.1112.737.0_x64__3k8sg7r9htsxt\dependencies\native\git\cmd;C:\Program Files\WindowsApps\OpenAI.Codex_26.1120.6357.0_x64__2p2nqsd0c76g0\app\resources
+USERNAME=Mak
+SHELL=C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
+LANG=C.UTF-8
+LC_ALL=C.UTF-8
+LC_CTYPE=C.UTF-8
+TERM=dumb
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD
+TMP=C:\Users\Mak\AppData\Local\Temp
+TEMP=C:\Users\Mak\AppData\Local\Temp
+
+
+
+Periodic native trim disabled
+
+
+---------------  S Y S T E M  ---------------
+
+OS:
+ Windows 11 , 64 bit Build 26100 (10.0.26100.9974)
+OS uptime: 14 days 19:23 hours
+Hyper-V role detected
+
+CPU: total 12 (initial active 12) (12 cores per cpu, 2 threads per core) family 25 model 80 stepping 0 microcode 0xa500014, cx8, cmov, fxsr, ht, mmx, 3dnowpref, sse, sse2, sse3, ssse3, sse4a, sse4.1, sse4.2, popcnt, lzcnt, tsc, tscinvbit, avx, avx2, aes, erms, clmul, bmi1, bmi2, adx, sha, fma, vzeroupper, clflush, clflushopt, hv
+Processor Information for the first 12 processors :
+  Max Mhz: 3901, Current Mhz: 3901, Mhz Limit: 3901
+
+Memory: 4k page, system-wide physical 32635M (2945M free)
+TotalPageFile size 57211M (AvailPageFile size 367M)
+current process WorkingSet (physical memory assigned to process): 14M, peak: 14M
+current process commit charge ("private bytes"): 64M, peak: 574M
+
+vm_info: OpenJDK 64-Bit Server VM (17.0.18+8-LTS) for windows-amd64 JRE (17.0.18+8-LTS), built on Jan 15 2026 18:50:45 by "MicrosoftCorporation" with MS VC++ 17.14 (VS2022)
+
+END.

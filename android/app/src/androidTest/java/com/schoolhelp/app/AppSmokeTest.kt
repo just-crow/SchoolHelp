@@ -33,6 +33,25 @@ class AppSmokeTest {
         }
     }
 
+    @Test fun manualPlaybackStopsAtSegmentEndAndRespondsToRepeatAndSkip() {
+        val file = silentRecording()
+        lateinit var model: AppViewModel
+        compose.runOnUiThread {
+            model = ViewModelProvider(compose.activity)[AppViewModel::class.java]
+            model.playback.loadQuestions(listOf(file, file), 1f, 0, 29500, autoplay = true)
+            model.screen(Screen.LISTEN)
+        }
+        compose.waitUntil(8000) { model.playback.state.value.ended }
+        assertEquals(0, model.playback.state.value.questionIndex)
+        compose.runOnUiThread { model.playback.act(PlaybackAction.TOGGLE) }
+        compose.waitUntil(5000) { model.playback.state.value.playing }
+        assertTrue(model.playback.state.value.positionMs < 5000)
+        compose.runOnUiThread { model.playback.act(PlaybackAction.FORWARD) }
+        compose.waitUntil(5000) { model.playback.state.value.playing && model.playback.state.value.questionIndex == 1 }
+        compose.runOnUiThread { model.playback.act(PlaybackAction.REWIND) }
+        compose.waitUntil(5000) { model.playback.state.value.playing && model.playback.state.value.questionIndex == 0 }
+    }
+
     @Test fun playbackContinuesWhenActivityStopsAndMediaControlsStillSeek() {
         lateinit var model: AppViewModel
         compose.runOnUiThread {
@@ -175,7 +194,7 @@ class AppSmokeTest {
         compose.onNodeWithText("On this phone").performClick()
         screenshot("settings")
         compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithText("Take a photo").assertIsDisplayed()
+        compose.onNodeWithText("Take a photo").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun multiplePhotosCanBeAddedEditedOrderedRemovedAndCleared() {
@@ -255,7 +274,7 @@ class AppSmokeTest {
         compose.runOnUiThread { model.playback.act(PlaybackAction.TOGGLE) }
         compose.runOnIdle { assertFalse(model.playback.state.value.playing) }
         compose.runOnUiThread { model.screen(Screen.HOME) }
-        compose.onNodeWithText("Take a photo").assertIsDisplayed()
+        compose.onNodeWithText("Take a photo").performScrollTo().assertIsDisplayed()
         compose.runOnIdle {
             assertEquals(0, compose.activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             assertEquals(originalBrightness, compose.activity.window.attributes.screenBrightness, .001f)
@@ -331,7 +350,7 @@ class AppSmokeTest {
             assertEquals(originalBrightness, compose.activity.window.attributes.screenBrightness, .001f)
         }
         source.delete()
-        compose.onNodeWithText("Take a photo").assertIsDisplayed()
+        compose.onNodeWithText("Take a photo").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun bluetoothMediaCommandsControlSpeechAndDeactivateWhenCleared() {
