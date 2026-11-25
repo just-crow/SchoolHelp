@@ -103,14 +103,23 @@ class PlaybackController(context: Context, private val onError: (String) -> Unit
         if (!hasRecording) return
         when (keyCode) {
             KeyEvent.KEYCODE_HEADSETHOOK, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                earbudAction = "Play / pause"
+                earbudAction = if (questionClips.isEmpty()) "Play / pause" else "Repeat segment"
                 act(PlaybackAction.TOGGLE)
             }
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
                 earbudAction = "Play"
                 if (!player.playWhenReady || player.playbackState == Player.STATE_ENDED) act(PlaybackAction.TOGGLE) else refresh()
             }
-            KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_STOP -> {
+            KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                if (questionClips.isNotEmpty()) {
+                    earbudAction = "Repeat segment"
+                    restart()
+                } else {
+                    earbudAction = "Pause"
+                    pause()
+                }
+            }
+            KeyEvent.KEYCODE_MEDIA_STOP -> {
                 earbudAction = "Pause"
                 pause()
             }
@@ -169,8 +178,12 @@ class PlaybackController(context: Context, private val onError: (String) -> Unit
         if (mediaSession == null) {
             try { appContext.startService(android.content.Intent(appContext, ListeningService::class.java)) } catch (_: IllegalStateException) { }
         }
-        if (questionClips.isNotEmpty() && action != PlaybackAction.TOGGLE) {
-            moveQuestion(if (action == PlaybackAction.FORWARD) 1 else -1)
+        if (questionClips.isNotEmpty()) {
+            when (action) {
+                PlaybackAction.REWIND -> moveQuestion(-1)
+                PlaybackAction.FORWARD -> moveQuestion(1)
+                PlaybackAction.TOGGLE -> restart()
+            }
             return
         }
         when (action) {

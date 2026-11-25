@@ -400,7 +400,7 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
         feedback = when (action) {
             PlaybackAction.REWIND -> if (manual) "Previous question" else "Back 5 seconds"
             PlaybackAction.FORWARD -> if (manual) "Next question" else "Forward 5 seconds"
-            PlaybackAction.TOGGLE -> if (currentPlayback.playing) "Paused" else "Playing"
+            PlaybackAction.TOGGLE -> if (manual) "Repeating segment" else if (currentPlayback.playing) "Paused" else "Playing"
         }
     }
     BackHandler { model.screen(Screen.HOME) }
@@ -430,8 +430,8 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
         BoxWithConstraints(Modifier.fillMaxSize().background(Night)
             .semantics(mergeDescendants = !manual) {
                 role = Role.Button
-                contentDescription = if (manual) "Question ${playback.questionIndex + 1} of ${playback.questionCount}. One tap goes back. Two taps go forward. Three taps play or pause." else "Listening mode. ${if (playback.playing) "Playing" else "Paused"}. One tap rewinds five seconds. Two taps skip forward. Three taps play or pause. Hold one and a half seconds to restart. Keep holding to three seconds to finish this item."
-                onClick(label = "Play or pause") { perform(PlaybackAction.TOGGLE); true }
+                contentDescription = if (manual) "Question ${playback.questionIndex + 1} of ${playback.questionCount}. One tap goes back. Two taps go forward. Three taps repeat this segment." else "Listening mode. ${if (playback.playing) "Playing" else "Paused"}. One tap rewinds five seconds. Two taps skip forward. Three taps play or pause. Hold one and a half seconds to restart. Keep holding to three seconds to finish this item."
+                onClick(label = if (manual) "Repeat segment" else "Play or pause") { perform(PlaybackAction.TOGGLE); true }
                 customActions = listOf(
                     CustomAccessibilityAction(if (manual) "Previous question" else "Rewind five seconds") { perform(PlaybackAction.REWIND); true },
                     CustomAccessibilityAction(if (manual) "Next question" else "Forward five seconds") { perform(PlaybackAction.FORWARD); true },
@@ -510,11 +510,11 @@ private fun ListeningScreen(state: UiState, playback: PlaybackState, model: AppV
                         Text("Repeat", color = Cream)
                     }
                     TextButton(enabled = playback.questionIndex + 1 < playback.questionCount, onClick = { model.playback.moveQuestion(1) }) {
-                        Text("Next", color = Cream.copy(alpha = if (playback.questionIndex + 1 < playback.questionCount) 1f else .35f))
+                        Text("Skip", color = Cream.copy(alpha = if (playback.questionIndex + 1 < playback.questionCount) 1f else .35f))
                     }
                 }
                 if (!waiting) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    GestureHint("1 tap", if (manual) "Previous" else "−5 seconds", true); GestureHint("2 taps", if (manual) "Next" else "+5 seconds", true); GestureHint("3 taps", "Play / pause", true)
+                    GestureHint("1 tap", if (manual) "Previous" else "−5 seconds", true); GestureHint("2 taps", if (manual) "Skip" else "+5 seconds", true); GestureHint("3 taps", if (manual) "Repeat" else "Play / pause", true)
                 }
                 HorizontalDivider(Modifier.padding(vertical = if (compact) 12.dp else 24.dp), color = Cream.copy(alpha = .1f))
                 Text(if (waiting) "Use Back to return to sharing settings" else "HOLD 1.5 SECONDS TO RESTART · 3 SECONDS TO END", color = Cream.copy(alpha = .4f), style = MaterialTheme.typography.bodySmall,

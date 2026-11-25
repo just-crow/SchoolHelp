@@ -128,7 +128,7 @@ internal fun SettingsScreen(state: UiState, model: AppViewModel) {
         Text("Voice and explanation changes apply to the next generated recording.", style = MaterialTheme.typography.bodySmall, color = Muted)
     }
     SettingsSection("Listening controls") {
-        Text("Earbud media controls: play/pause controls speech, next and previous track move between questions in manual mode or seek 5 seconds in other recordings. Assign gestures in the Xiaomi Earbuds app. The earbuds decide which gesture sends each command.",
+        Text("In manual mode, earbud play/pause repeats the current segment, next track skips ahead, and previous track goes back. Other recordings use play/pause and 5-second skips. Assign gestures in the Xiaomi Earbuds app. The earbuds decide which gesture sends each command.",
             style = MaterialTheme.typography.bodyMedium, color = Muted)
         SettingSwitch("Ready sound", "A subtle chime when the full-screen button is ready.", settings.readySound) {
             model.settings(settings.copy(readySound = it))
