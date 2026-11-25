@@ -48,16 +48,27 @@ private val openRouterGenerationLock = Mutex()
 internal suspend fun <T> Call.useOpenRouterGenerationResponse(block: suspend (Response) -> T): T =
     openRouterGenerationLock.withLock { useResponse(block) }
 
+private fun Response.openRouterErrorMetadata() = runCatching {
+    org.json.JSONObject(peekBody(8192).string()).optJSONObject("error")?.optJSONObject("metadata")
+}.getOrNull()
+
+private fun org.json.JSONObject?.isTemporaryBudgetLimit(): Boolean =
+    this?.optString("limit_source") == "openrouter_in_flight_budget" ||
+        this?.optString("reason") == "in_flight_budget_exhausted"
+
+internal fun Response.openRouterBudgetRetrySeconds(): Long? {
+    if (code != 402 || !openRouterErrorMetadata().isTemporaryBudgetLimit()) return null
+    val seconds = header("Retry-After")?.toLongOrNull() ?: 5
+    return seconds.takeIf { it in 0..30 }?.coerceAtLeast(1)
+}
+
 /** Use only known error codes so upstream messages cannot expose request details. */
 internal fun Response.openRouterCreditMessage(operation: String): String {
-    val metadata = runCatching {
-        org.json.JSONObject(peekBody(8192).string()).optJSONObject("error")?.optJSONObject("metadata")
-    }.getOrNull()
+    val metadata = openRouterErrorMetadata()
     return when {
         metadata?.optString("limit_source") == "openrouter_key_limit" ->
             "The OpenRouter key reached its spending limit. Check this key's limit in OpenRouter."
-        metadata?.optString("limit_source") == "openrouter_in_flight_budget" ||
-            metadata?.optString("reason") == "in_flight_budget_exhausted" ->
+        metadata.isTemporaryBudgetLimit() ->
             {
                 val retryAfter = header("Retry-After")?.toLongOrNull()?.takeIf { it > 0 }
                 val retry = retryAfter?.let { "Try again in $it seconds." } ?: "Try again shortly."

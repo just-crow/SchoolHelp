@@ -387,7 +387,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     segments.forEachIndexed { index, text ->
                         mutable.update { it.copy(busy = "Preparing segment ${index + 1} of ${segments.size}") }
                         val clip = File(sessions.directory, "question-${java.util.UUID.randomUUID()}.${if (cloudSpeech) "mp3" else "wav"}")
-                        val generatedClip = if (cloudSpeech) remoteSpeech.generate(text, preferences.apiKey(), config, clip)
+                        val generatedClip = if (cloudSpeech) {
+                            if (index > 0) kotlinx.coroutines.delay(1500)
+                            remoteSpeech.generate(text, preferences.apiKey(), config, clip, retryTemporaryBudget = true)
+                        }
                         else speech.generate(text, config.language, com.schoolhelp.app.core.SpeechSpeed.generation(config.rate), clip)
                         questionClips.add(generatedClip)
                     }
@@ -397,7 +400,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     output = com.schoolhelp.app.audio.WritingAudio.generate(getApplication(),plan,playbackSpeed,output,cueSounds=config.writingPauseSounds) { text, target, index, total ->
                         CrashDiagnostics.stage("speech part $index of $total")
                         mutable.update { it.copy(busy="Generating speech part $index of $total, with writing time") }
-                        if(cloudSpeech) remoteSpeech.generate(text,preferences.apiKey(),config,target)
+                        if (cloudSpeech) {
+                            if (index > 1) kotlinx.coroutines.delay(1500)
+                            remoteSpeech.generate(text, preferences.apiKey(), config, target, retryTemporaryBudget = true)
+                        }
                         else speech.generate(text,config.language,com.schoolhelp.app.core.SpeechSpeed.generation(config.rate),File(target.parentFile,target.nameWithoutExtension+".wav"))
                     }
                 } else if (cloudSpeech) output = remoteSpeech.generate(spokenText, preferences.apiKey(), config, output)

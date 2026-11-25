@@ -18,6 +18,22 @@ class OpenRouterRequestAuditTest {
     @get:Rule val files = TemporaryFolder()
     private val settings = AppSettings(speechModelId = "fixture/tts", speechVoice = "voice")
 
+    @Test fun segmentedSpeechWaitsThenRetriesOnlyTheRejectedSegment() = runBlocking {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse().setResponseCode(402).setHeader("Retry-After", "1")
+                .setBody("""{"error":{"metadata":{"limit_source":"openrouter_in_flight_budget"}}}"""))
+            server.enqueue(MockResponse().setHeader("Content-Type", "audio/mpeg").setBody("test audio"))
+            val service = OpenRouterSpeech(OkHttpClient(), server.url("/").toString())
+            val start = System.nanoTime()
+            val clip = service.generate("Segment three.", "fixture", settings, files.root.resolve("clip.mp3"),
+                retryTemporaryBudget = true)
+            assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) >= 1000L)
+            assertEquals("test audio", clip.readText())
+            assertEquals(2, server.requestCount)
+            assertEquals(server.takeRequest().body.readUtf8(), server.takeRequest().body.readUtf8())
+        }
+    }
+
     @Test fun speechAndTranscriptionCannotOverlapWhileAudioIsDownloading() = runBlocking {
         MockWebServer().use { server ->
             val client = OkHttpClient()

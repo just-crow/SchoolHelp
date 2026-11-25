@@ -3,9 +3,11 @@ package com.schoolhelp.app.audio
 import com.schoolhelp.app.core.ApiKey
 import com.schoolhelp.app.data.AppSettings
 import com.schoolhelp.app.data.openRouterCreditMessage
+import com.schoolhelp.app.data.openRouterBudgetRetrySeconds
 import com.schoolhelp.app.data.useOpenRouterGenerationResponse
 import com.schoolhelp.app.data.useResponse
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -46,7 +48,7 @@ class OpenRouterSpeech(
         }
     }
 
-    suspend fun generate(text: String, key: String, settings: AppSettings, output: File) = withContext(Dispatchers.IO) {
+    suspend fun generate(text: String, key: String, settings: AppSettings, output: File, retryTemporaryBudget: Boolean = false): File = withContext(Dispatchers.IO) {
         val cleanKey = ApiKey.normalize(key)
         require(settings.speechModelId.isNotBlank()) { "Choose an OpenRouter speech model in settings." }
         require(settings.speechVoice.isNotBlank() || hasDefaultSpeechVoice(settings.speechModelId)) { "Choose a speech voice in settings." }
@@ -57,10 +59,22 @@ class OpenRouterSpeech(
         if (settings.speechVoice.isNotBlank()) body.put("voice", settings.speechVoice.trim())
         val request = Request.Builder().url("${baseUrl}audio/speech").header("Authorization", "Bearer $cleanKey")
             .header("X-Title", "SchoolHelp").post(body.toString().toRequestBody("application/json".toMediaType())).build()
+        try {
+            download(request, cleanKey, text, output, retryTemporaryBudget)
+        } catch (retry: TemporarySpeechBudget) {
+            delay(retry.seconds * 1000)
+            download(request, cleanKey, text, output, allowBudgetRetry = false)
+        }
+    }
+
+    private class TemporarySpeechBudget(val seconds: Long) : Exception()
+
+    private suspend fun download(request: Request, cleanKey: String, text: String, output: File, allowBudgetRetry: Boolean): File {
         val partial = File(output.parentFile, "${output.name}.partial")
         try {
             var recording = output
             client.newCall(request).useOpenRouterGenerationResponse { response ->
+                if (allowBudgetRetry) response.openRouterBudgetRetrySeconds()?.let { throw TemporarySpeechBudget(it) }
                 check(response.isSuccessful) {
                     when (response.code) {
                         401, 403 -> "OpenRouter rejected the API key. Check it in settings."
@@ -110,7 +124,7 @@ class OpenRouterSpeech(
             }
             coroutineContext.ensureActive()
             check(partial.renameTo(recording)) { "Could not save the speech recording." }
-            recording
+            return recording
         } finally { partial.delete() }
     }
 }
